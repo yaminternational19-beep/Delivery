@@ -1,0 +1,15 @@
+CREATE TABLE brands (
+  id INT AUTO_INCREMENT PRIMARY KEY,
+  brand_code VARCHAR(20) UNIQUE,
+  name VARCHAR(150) NOT NULL,
+  category_id INT NOT NULL,
+  subcategory_id INT NOT NULL,
+  logo TEXT,
+  description TEXT,
+  status ENUM('Active','Inactive') DEFAULT 'Active',
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+
+  FOREIGN KEY (category_id) REFERENCES categories(id),
+  FOREIGN KEY (subcategory_id) REFERENCES subcategories(id)
+);

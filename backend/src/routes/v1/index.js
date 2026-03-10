@@ -43,13 +43,16 @@ router.get(
 
 
 const productRoutes = require("../../modules/products/product.routes");
+
 router.use("/products", productRoutes);
 
 
 const authRoutes = require("../../modules/auth/auth.routes");
+
 router.use("/auth", authRoutes);
 
 const subadmins = require("../../modules/subadmins/subadmin.routes");
+
 router.use("/subadmin", subadmins);
 
 const categoryRoutes = require("../../modules/categories/category.routes");
@@ -61,5 +64,9 @@ const subCategoryRoutes = require("../../modules/subcategory/subcategory.routes"
 
 router.use("/subcategories", subCategoryRoutes);
 
+
+const brandRoutes = require("../../modules/brands/brand.routes");
+
+router.use("/brands", brandRoutes);
 
 module.exports = router;

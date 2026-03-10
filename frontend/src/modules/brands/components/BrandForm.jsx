@@ -1,57 +1,86 @@
 import React, { useState, useEffect } from 'react';
 import { X, Upload } from 'lucide-react';
 
-const BrandForm = ({ initialData, onCancel, onSave }) => {
+const BrandForm = ({ initialData, categories = [], subCategories = [], onCancel, onSave }) => {
     const [formData, setFormData] = useState({
         name: '',
         categoryId: '',
         subCategoryId: '',
-        logo: '',
         description: '',
         status: 'Active'
     });
+    const [imageFile, setImageFile] = useState(null);
     const [imagePreview, setImagePreview] = useState(null);
+    const [submitting, setSubmitting] = useState(false);
+    const [errors, setErrors] = useState({});
 
-    const categories = [
-        { id: 'CAT001', name: 'Electronics' },
-        { id: 'CAT005', name: 'Fashion' }
-    ];
-
-    const subCategories = [
-        { id: 'SC001', name: 'Mobile Phones', catId: 'CAT001' },
-        { id: 'SC002', name: 'Laptops', catId: 'CAT001' },
-        { id: 'SC006', name: 'Footwear', catId: 'CAT005' }
-    ];
+    // Filter sub-categories based on selected category
+    // Use == (loose equality) because the API returns categoryId as a number
+    // but the select element stores values as strings.
+    const filteredSubCats = subCategories.filter(
+        // eslint-disable-next-line eqeqeq
+        sc => !formData.categoryId || sc.categoryId == formData.categoryId
+    );
 
     useEffect(() => {
         if (initialData) {
-            setFormData(initialData);
-            if (initialData.logo && initialData.logo.startsWith('data:')) {
+            // Normalise IDs to strings so <select value={...}> matches <option value="..."> correctly.
+            // The API can return numeric IDs but HTMLSelectElement always compares as strings.
+            const catId = initialData.categoryId != null ? String(initialData.categoryId) : '';
+            const subCatId = initialData.subCategoryId != null ? String(initialData.subCategoryId) : '';
+
+            setFormData({
+                name: initialData.name || '',
+                categoryId: catId,
+                subCategoryId: subCatId,
+                description: initialData.description || '',
+                status: initialData.status || 'Active'
+            });
+
+            // Show existing logo on edit
+            if (initialData.logo) {
                 setImagePreview(initialData.logo);
             }
+        } else {
+            // Reset form when switching to Add mode
+            setFormData({ name: '', categoryId: '', subCategoryId: '', description: '', status: 'Active' });
+            setImageFile(null);
+            setImagePreview(null);
+            setErrors({});
         }
     }, [initialData]);
 
-    const handleSubmit = (e) => {
-        e.preventDefault();
-        onSave(formData);
+    const validate = () => {
+        const newErrors = {};
+        if (!formData.name.trim()) newErrors.name = 'Brand name is required';
+        if (!formData.categoryId) newErrors.categoryId = 'Category is required';
+        setErrors(newErrors);
+        return Object.keys(newErrors).length === 0;
     };
 
     const handleLogoUpload = (e) => {
         const file = e.target.files[0];
         if (file) {
+            setImageFile(file);
             const reader = new FileReader();
-            reader.onloadend = () => {
-                setFormData(prev => ({ ...prev, logo: reader.result }));
-                setImagePreview(reader.result);
-            };
+            reader.onloadend = () => setImagePreview(reader.result);
             reader.readAsDataURL(file);
         }
     };
 
-    const filteredSubCats = subCategories.filter(
-        sc => !formData.categoryId || sc.catId === formData.categoryId
-    );
+    const handleSubmit = async (e) => {
+        e.preventDefault();
+        if (!validate()) return;
+
+        setSubmitting(true);
+        try {
+            await onSave({ ...formData, imageFile });
+        } catch {
+            // error handled in parent
+        } finally {
+            setSubmitting(false);
+        }
+    };
 
     return (
         <div className="cat-modal-overlay">
@@ -71,18 +100,19 @@ const BrandForm = ({ initialData, onCancel, onSave }) => {
 
                         {/* Category */}
                         <div className="cat-form-group">
-                            <label>Category</label>
+                            <label>Category <span style={{ color: '#ef4444' }}>*</span></label>
                             <select
-                                className="cat-input"
+                                className={`cat-input${errors.categoryId ? ' input-error' : ''}`}
                                 value={formData.categoryId}
                                 onChange={(e) => setFormData({ ...formData, categoryId: e.target.value, subCategoryId: '' })}
-                                required
                             >
                                 <option value="">Select Category</option>
                                 {categories.map(cat => (
-                                    <option key={cat.id} value={cat.id}>{cat.name}</option>
+                                    // Always use String() so the value matches string-based formData.categoryId
+                                    <option key={cat.id} value={String(cat.id)}>{cat.name}</option>
                                 ))}
                             </select>
+                            {errors.categoryId && <span className="field-error">{errors.categoryId}</span>}
                         </div>
 
                         {/* Sub Category */}
@@ -92,33 +122,33 @@ const BrandForm = ({ initialData, onCancel, onSave }) => {
                                 className="cat-input"
                                 value={formData.subCategoryId}
                                 onChange={(e) => setFormData({ ...formData, subCategoryId: e.target.value })}
-                                required
+                                disabled={!formData.categoryId}
                             >
                                 <option value="">Select Sub Category</option>
                                 {filteredSubCats.map(sc => (
-                                    <option key={sc.id} value={sc.id}>{sc.name}</option>
+                                    // Always use String() so the value matches string-based formData.subCategoryId
+                                    <option key={sc.id} value={String(sc.id)}>{sc.name}</option>
                                 ))}
                             </select>
                         </div>
 
                         {/* Brand Name */}
                         <div className="cat-form-group">
-                            <label>Brand Name</label>
+                            <label>Brand Name <span style={{ color: '#ef4444' }}>*</span></label>
                             <input
                                 type="text"
-                                className="cat-input"
+                                className={`cat-input${errors.name ? ' input-error' : ''}`}
                                 placeholder="e.g. Apple, Nike"
                                 value={formData.name}
                                 onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                                required
                             />
+                            {errors.name && <span className="field-error">{errors.name}</span>}
                         </div>
 
                         {/* Logo Upload */}
                         <div className="cat-form-group">
                             <label>Brand Logo</label>
                             <div className="cat-upload-zone">
-                                {/* Full-zone clickable file input */}
                                 <input
                                     type="file"
                                     accept="image/*"
@@ -188,8 +218,8 @@ const BrandForm = ({ initialData, onCancel, onSave }) => {
                         <button type="button" className="btn btn-secondary" onClick={onCancel}>
                             Cancel
                         </button>
-                        <button type="submit" className="btn btn-primary">
-                            {initialData ? 'Save Changes' : 'Create Brand'}
+                        <button type="submit" className="btn btn-primary" disabled={submitting}>
+                            {submitting ? 'Saving...' : initialData ? 'Save Changes' : 'Create Brand'}
                         </button>
                     </div>
                 </form>
