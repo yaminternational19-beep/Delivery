@@ -48,6 +48,7 @@ export const menuItems = [
     { name: "Announcements", key: "SETTINGS", icon: BellRing, path: "/settings/announcements", group: "SETTINGS" },
     { name: "Help & Support", key: "SETTINGS", icon: HelpCircle, path: "/settings/help-support", group: "SETTINGS" },
     { name: "FAQ Manager", key: "SETTINGS", icon: UserCheck, path: "/settings/faq", group: "SETTINGS" },
+    { name: "Vendor Support", key: "VENDOR_SUPPORT", icon: HelpCircle, path: "/vendor/help-support", group: "SUPPORT" },
 ];
 
 export const sidebarGroups = {

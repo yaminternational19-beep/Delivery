@@ -24,6 +24,7 @@ import { SettingsPage } from '../modules/settings';
 //vendor routes
 import VendorProductPage from '../modules/vendor_products/VendorProductsPage';
 import VendorOrdersPage from '../modules/vendor_orders/VendorOrdersPage';
+import HelpSupport from '../modules/vendor_settings/HelpSupport';
 
 // Simple ProtectedRoute component
 const ProtectedRoute = ({ children, allowedRoles = ["ALL"] }) => {
@@ -255,6 +256,15 @@ const GlobalRoutes = () => {
                 element={
                     <ProtectedRoute allowedRoles={["SUPER_ADMIN", "ADMIN", "SUB_ADMIN", "VENDOR_OWNER"]}>
                         <NotificationsPage />
+                    </ProtectedRoute>
+                }
+            />
+
+            <Route
+                path="/vendor/help-support"
+                element={
+                    <ProtectedRoute allowedRoles={["SUPER_ADMIN", "ADMIN", "VENDOR_OWNER"]}>
+                        <HelpSupport />
                     </ProtectedRoute>
                 }
             />
