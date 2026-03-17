@@ -10,13 +10,8 @@ export const rolePermissions = {
         "PRODUCTS",
         "RIDERS",
         "CUSTOMERS",
-        "VEHICLES",
-        "QUANTITY",
-        "ZONES",
         "TICKETS",
         "REFUNDS",
-        "PAYOUTS",
-        "INVOICES",
         "SETTINGS",
         "VENDOR_ORDERS",
         "VENDOR_PRODUCTS"
@@ -36,8 +31,6 @@ export const rolePermissions = {
         "RIDERS",
         "CUSTOMERS",
         "VEHICLES",
-        "QUANTITY",
-        "ZONES",
         "VENDOR_ORDERS",
         "VENDOR_PRODUCTS"
     ],

@@ -11,20 +11,10 @@ const upload = require("../../middlewares/upload.middleware");
 router.get("/", controller.getCategories);
 
 // CREATE category
-router.post(
-  "/",
-  upload.single("image"),
-  validate(createCategorySchema),
-  controller.createCategory
-);
+router.post("/",upload.single("image"),validate(createCategorySchema),controller.createCategory);
 
 // UPDATE category
-router.put(
-  "/:id",
-  upload.single("image"),
-  validate(updateCategorySchema),
-  controller.updateCategory
-);
+router.put("/:id",upload.single("image"),validate(updateCategorySchema),controller.updateCategory);
 
 // DELETE category
 router.delete("/:id", controller.deleteCategory);

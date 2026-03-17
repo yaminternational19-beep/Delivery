@@ -6,10 +6,7 @@ const { createProductSchema } = require("./product.validator");
 
 const validate = require("../../middlewares/validate"); // if created
 
-router.post(
-  "/",
-  validate(createProductSchema),
-  productController.createProduct
+router.post("/",validate(createProductSchema),productController.createProduct
 );
 
 router.get("/", productController.getAllProducts);

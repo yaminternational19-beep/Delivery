@@ -16,7 +16,11 @@ import {
     Receipt,
     Users2,
     BarChart3,
-    Settings
+    Settings,
+    FileText,
+    BellRing,
+    HelpCircle,
+    UserCheck
 } from 'lucide-react';
 
 export const menuItems = [
@@ -40,7 +44,10 @@ export const menuItems = [
     { name: "Invoices", key: "INVOICES", icon: Receipt, path: "/invoices", group: "FINANCE", description: "Manage system invoices" },
     { name: "Staff", key: "STAFF", icon: Users2, path: "/staff", group: "VENDOR", description: "Manage vendor staff" },
     { name: "Reports", key: "REPORTS", icon: BarChart3, path: "/reports", group: "VENDOR", description: "View system reports" },
-    { name: "Settings", key: "SETTINGS", icon: Settings, path: "/settings", group: "OTHER", description: "Core platform configurations" },
+    { name: "Manage Content", key: "SETTINGS", icon: FileText, path: "/settings/manage-content", group: "SETTINGS" },
+    { name: "Announcements", key: "SETTINGS", icon: BellRing, path: "/settings/announcements", group: "SETTINGS" },
+    { name: "Help & Support", key: "SETTINGS", icon: HelpCircle, path: "/settings/help-support", group: "SETTINGS" },
+    { name: "FAQ Manager", key: "SETTINGS", icon: UserCheck, path: "/settings/faq", group: "SETTINGS" },
 ];
 
 export const sidebarGroups = {
@@ -49,5 +56,6 @@ export const sidebarGroups = {
     SUPPORT: "Support",
     FINANCE: "Finance",
     VENDOR: "Vendor Mgmt",
+    SETTINGS: "Settings",
     OTHER: "Other"
 };

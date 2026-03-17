@@ -8,24 +8,27 @@ const pool = require("./config/db");
 
 const PORT = process.env.PORT || 9000;
 
-async function startServer() {
-  try {
+// async function startServer() {
+//   try {
 
-    // Test MySQL connection
-    const connection = await pool.getConnection();
-    console.log("MySQL connected successfully");
-    connection.release();
+//     // Test MySQL connection
+//     const connection = await pool.getConnection();
+//     console.log("MySQL connected successfully");
+//     connection.release();
 
-    // Start server
-    app.listen(PORT, () => {
+//     // Start server
+//     app.listen(PORT, () => {
+//       console.log(`Server running on port ${PORT}`);
+//     });
+
+//   } catch (error) {
+//     console.error("Database connection failed:", error);
+//     process.exit(1);
+//   }
+// }
+
+// startServer();
+
+app.listen(PORT, () => {
       console.log(`Server running on port ${PORT}`);
     });
-
-  } catch (error) {
-    console.error("Database connection failed:", error);
-    process.exit(1);
-  }
-}
-
-startServer();
-

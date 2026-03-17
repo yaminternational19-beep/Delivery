@@ -4,10 +4,7 @@ const router = express.Router();
 const controller = require("./brand.controller");
 const validate = require("../../middlewares/validate");
 
-const {
-  createBrandSchema,
-  updateBrandSchema
-} = require("./brand.validator");
+const {createBrandSchema,updateBrandSchema} = require("./brand.validator");
 
 const upload = require("../../middlewares/upload.middleware");
 
@@ -21,23 +18,13 @@ router.get("/", controller.getBrands);
    CREATE BRAND
 ================================= */
 
-router.post(
-  "/",
-  upload.single("image"),
-  validate(createBrandSchema),
-  controller.createBrand
-);
+router.post("/",upload.single("image"),validate(createBrandSchema),controller.createBrand);
 
 /* ===============================
    UPDATE BRAND
 ================================= */
 
-router.put(
-  "/:id",
-  upload.single("image"),
-  validate(updateBrandSchema),
-  controller.updateBrand
-);
+router.put("/:id",upload.single("image"),validate(updateBrandSchema),controller.updateBrand);
 
 /* ===============================
    DELETE BRAND

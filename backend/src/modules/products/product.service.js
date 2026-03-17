@@ -10,6 +10,7 @@ const createProduct = (data) => {
   return newProduct;
 };
 
+
 const getAllProducts = () => {
   return products;
 };

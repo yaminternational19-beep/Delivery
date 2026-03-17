@@ -33,16 +33,16 @@ const RiderList = ({
         setFilters(newFilters);
     };
 
-    const resetFilters = () => {
-        setFilters({
-            search: '',
-            kycStatus: 'All',
-            country: 'All',
-            state: 'All',
-            city: 'All'
-        });
-        showToast('Filters cleared', 'info');
-    };
+    // const resetFilters = () => {
+    //     setFilters({
+    //         search: '',
+    //         kycStatus: 'All',
+    //         country: 'All',
+    //         state: 'All',
+    //         city: 'All'
+    //     });
+    //     showToast('Filters cleared', 'info');
+    // };
 
     const toggleSelectAll = () => {
         if (selectedRiderIds.length === riders.length && riders.length > 0) {
@@ -122,14 +122,14 @@ const RiderList = ({
                             <option value="Rejected">Rejected</option>
                         </select>
 
-                        <button
+                        {/* <button
                             className="filter-clear-btn"
                             onClick={resetFilters}
                             title="Clear Filters"
                             style={{ width: '40px', height: '40px', borderRadius: '10px', border: '1px solid #fee2e2', background: '#fef2f2', color: '#ef4444', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}
                         >
                             <X size={18} />
-                        </button>
+                        </button> */}
                     </div>
                 </div>
 

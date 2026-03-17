@@ -1,0 +1,14 @@
+/* d:\Praveen Reddy\Delivery\frontend\src\modules\refunds\Refunds.css */
+
+.refunds-module .module-intro h1 {
+    font-size: 1.8rem;
+    font-weight: 800;
+    color: #1e293b;
+    margin: 0;
+}
+
+.refunds-module .module-intro p {
+    font-size: 0.9rem;
+    color: #64748b;
+    margin: 0;
+}

@@ -4,10 +4,7 @@ const router = express.Router();
 const controller = require("./subcategory.controller");
 const validate = require("../../middlewares/validate");
 
-const {
-  createSubCategorySchema,
-  updateSubCategorySchema
-} = require("./subcategory.validator");
+const { createSubCategorySchema,updateSubCategorySchema } = require("./subcategory.validator");
 
 const upload = require("../../middlewares/upload.middleware");
 
@@ -21,23 +18,13 @@ router.get("/", controller.getSubCategories);
    CREATE SUBCATEGORY
 ================================= */
 
-router.post(
-  "/",
-  upload.single("image"),
-  validate(createSubCategorySchema),
-  controller.createSubCategory
-);
+router.post("/",upload.single("image"),validate(createSubCategorySchema),controller.createSubCategory);
 
 /* ===============================
    UPDATE SUBCATEGORY
 ================================= */
 
-router.put(
-  "/:id",
-  upload.single("image"),
-  validate(updateSubCategorySchema),
-  controller.updateSubCategory
-);
+router.put("/:id",upload.single("image"),validate(updateSubCategorySchema),controller.updateSubCategory);
 
 /* ===============================
    DELETE SUBCATEGORY

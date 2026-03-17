@@ -17,6 +17,9 @@ import BrandsPage from '../modules/brands/BrandsPage';
 import QuantityPage from '../modules/quantity';
 import ProfilePage from '../pages/profilepage';
 import NotificationsPage from '../pages/NotificationsPage';
+import { TicketsPage } from '../modules/tickets';
+import { RefundsPage } from '../modules/refunds';
+import { SettingsPage } from '../modules/settings';
 
 //vendor routes
 import VendorProductPage from '../modules/vendor_products/VendorProductsPage';
@@ -160,6 +163,65 @@ const GlobalRoutes = () => {
                         <CustomerManagement />
                     </ProtectedRoute>
                 }
+            />
+
+            <Route
+                path="/tickets"
+                element={
+                    <ProtectedRoute allowedRoles={["SUPER_ADMIN", "ADMIN", "SUB_ADMIN"]}>
+                        <TicketsPage />
+                    </ProtectedRoute>
+                }
+            />
+
+            <Route
+                path="/refunds"
+                element={
+                    <ProtectedRoute allowedRoles={["SUPER_ADMIN", "ADMIN", "SUB_ADMIN"]}>
+                        <RefundsPage />
+                    </ProtectedRoute>
+                }
+            />
+
+            <Route
+                path="/settings/manage-content"
+                element={
+                    <ProtectedRoute allowedRoles={["SUPER_ADMIN", "ADMIN", "SUB_ADMIN"]}>
+                        <SettingsPage activeTab="manage-content" />
+                    </ProtectedRoute>
+                }
+            />
+
+            <Route
+                path="/settings/announcements"
+                element={
+                    <ProtectedRoute allowedRoles={["SUPER_ADMIN", "ADMIN", "SUB_ADMIN"]}>
+                        <SettingsPage activeTab="announcements" />
+                    </ProtectedRoute>
+                }
+            />
+
+            <Route
+                path="/settings/help-support"
+                element={
+                    <ProtectedRoute allowedRoles={["SUPER_ADMIN", "ADMIN", "SUB_ADMIN"]}>
+                        <SettingsPage activeTab="help-support" />
+                    </ProtectedRoute>
+                }
+            />
+
+            <Route
+                path="/settings/faq"
+                element={
+                    <ProtectedRoute allowedRoles={["SUPER_ADMIN", "ADMIN", "SUB_ADMIN"]}>
+                        <SettingsPage activeTab="faq" />
+                    </ProtectedRoute>
+                }
+            />
+
+            <Route
+                path="/settings"
+                element={<Navigate to="/settings/manage-content" replace />}
             />
 
             <Route

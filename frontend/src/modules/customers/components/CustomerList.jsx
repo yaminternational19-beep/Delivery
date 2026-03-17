@@ -1,5 +1,5 @@
 import React from 'react';
-import { Search, MapPin, ChevronLeft, ChevronRight, X } from 'lucide-react';
+import { Search, MapPin, ChevronLeft, ChevronRight, X, Square, CheckSquare } from 'lucide-react';
 import ActionButtons from '../../../components/common/ActionButtons';
 import ExportActions from '../../../components/common/ExportActions';
 
@@ -36,16 +36,16 @@ const CustomerList = ({
         setFilters(newFilters);
     };
 
-    const resetFilters = () => {
-        setFilters({
-            search: '',
-            status: 'All',
-            country: 'All',
-            state: 'All',
-            city: 'All'
-        });
-        showToast('Filters cleared', 'info');
-    };
+    // const resetFilters = () => {
+    //     setFilters({
+    //         search: '',
+    //         status: 'All',
+    //         country: 'All',
+    //         state: 'All',
+    //         city: 'All'
+    //     });
+    //     showToast('Filters cleared', 'info');
+    // };
 
     const toggleSelectAll = () => {
         if (selectedCustomerIds.length === customers.length && customers.length > 0) {
@@ -114,14 +114,14 @@ const CustomerList = ({
                             <option value="Terminated">Terminated</option>
                         </select>
 
-                        <button
+                        {/* <button
                             className="filter-clear-btn"
                             onClick={resetFilters}
                             title="Clear Filters"
                             style={{ width: '40px', height: '40px', borderRadius: '10px', border: '1px solid #fee2e2', background: '#fef2f2', color: '#ef4444', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}
                         >
                             <X size={18} />
-                        </button>
+                        </button> */}
                     </div>
                 </div>
 
@@ -145,12 +145,12 @@ const CustomerList = ({
                     <thead>
                         <tr>
                             <th style={{ width: '48px' }}>
-                                <div onClick={toggleSelectAll} style={{ cursor: 'pointer', display: 'flex' }}>
-                                    {selectedCustomerIds.length === customers.length && customers.length > 0
-                                        ? <div style={{ color: 'var(--primary-color)' }}>◉</div>
-                                        : <div style={{ color: '#94a3b8' }}>○</div>
-                                    }
-                                </div>
+                                <div onClick={toggleSelectAll} style={{ cursor: 'pointer', display: 'flex', alignItems: 'center' }}>
+                                {selectedCustomerIds.length === customers.length && customers.length > 0
+                                    ? <CheckSquare size={17} color="#6366f1" />
+                                    : <Square size={17} color="#cbd5e1" />
+                                }
+                            </div>
                             </th>
                             <th>PROFILE</th>
                             <th>CUSTOMER ID</th>

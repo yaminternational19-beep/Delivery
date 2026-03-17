@@ -86,7 +86,7 @@ const Sidebar = () => {
                                 const Icon = item.icon;
                                 return (
                                     <NavLink
-                                        key={item.key}
+                                        key={item.path}
                                         to={item.path}
                                         className={({ isActive }) => `sidebar-nav-item ${isActive ? 'active' : ''}`}
                                         title={isCollapsed ? item.name : ''}

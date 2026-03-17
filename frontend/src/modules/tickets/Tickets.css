@@ -1,0 +1,33 @@
+/* d:\Praveen Reddy\Delivery\frontend\src\modules\tickets\Tickets.css */
+
+.tickets-module .module-intro h1 {
+    font-size: 1.8rem;
+    font-weight: 800;
+    color: #1e293b;
+    margin: 0;
+}
+
+.tickets-module .module-intro p {
+    font-size: 0.9rem;
+    color: #64748b;
+    margin: 0;
+}
+
+/* Specific overrides for Tickets Table */
+.tickets-module .dashboard-table th {
+    white-space: nowrap;
+}
+
+.tickets-module .status-badge {
+    text-transform: capitalize;
+}
+
+/* Ensure date filters look clean */
+.date-filter-group input::-webkit-calendar-picker-indicator {
+    cursor: pointer;
+    opacity: 0.6;
+}
+
+.date-filter-group input:hover::-webkit-calendar-picker-indicator {
+    opacity: 1;
+}
