@@ -100,10 +100,14 @@ export const verifyLoginOtp = asyncHandler(async (req, res) => {
   // store refresh token
   await authService.storeRefreshToken(decoded.id, decoded.role, refreshToken);
 
+  const user = await authService.getUserById(decoded.id, decoded.role);
+
   return ApiResponse.success(res, "Login successful", {
     accessToken,
     refreshToken,
-    role: decoded.role
+    role: decoded.role,
+    permissions: user.permissions || [],
+    name: user.name
   });
 });
 

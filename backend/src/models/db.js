@@ -295,6 +295,15 @@ const TABLES = [
                 ON DELETE CASCADE
             );
         `           
+    },
+    {
+        name: "products",
+        query: `
+            CREATE TABLE IF NOT EXISTS products (
+                id BIGINT AUTO_INCREMENT PRIMARY KEY,
+                
+            );
+        `
     }
 ];
 

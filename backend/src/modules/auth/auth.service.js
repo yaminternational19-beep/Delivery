@@ -198,7 +198,7 @@ const getUserById = async (id, role) => {
 
   if (role === "SUPER_ADMIN") {
     const [rows] = await db.query(
-      "SELECT email FROM super_admins WHERE id=?",
+      "SELECT email, name FROM super_admins WHERE id=?",
       [id]
     );
     return rows[0];
@@ -206,7 +206,7 @@ const getUserById = async (id, role) => {
 
   if (role === "SUB_ADMIN") {
     const [rows] = await db.query(
-      "SELECT email FROM sub_admins WHERE id=?",
+      "SELECT email, name, permissions FROM sub_admins WHERE id=?",
       [id]
     );
     return rows[0];
@@ -214,7 +214,7 @@ const getUserById = async (id, role) => {
 
   if (role === "VENDOR_OWNER") {
     const [rows] = await db.query(
-      "SELECT email FROM vendors WHERE id=?",
+      "SELECT email, owner_name as name FROM vendors WHERE id=?",
       [id]
     );
     return rows[0];
@@ -222,7 +222,7 @@ const getUserById = async (id, role) => {
 
   if (role === "VENDOR_STAFF") {
     const [rows] = await db.query(
-      "SELECT email FROM vendor_staff WHERE id=?",
+      "SELECT email, name, permissions FROM vendor_staff WHERE id=?",
       [id]
     );
     return rows[0];

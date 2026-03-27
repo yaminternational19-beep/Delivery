@@ -40,11 +40,17 @@ const Sidebar = () => {
     }, [isCollapsed]);
 
     const userRole = localStorage.getItem('userRole') || 'SUPER_ADMIN';
-    const permissions = rolePermissions[userRole] || [];
+    const userPermissionsStr = localStorage.getItem('userPermissions');
+    const userPermissions = userPermissionsStr ? JSON.parse(userPermissionsStr) : [];
 
-    const filteredMenu = permissions.includes("ALL")
-        ? menuItems
-        : menuItems.filter(item => permissions.includes(item.key));
+    const hasPermission = (module) => {
+        if (userRole === "SUPER_ADMIN") return true;
+        if (userRole === "VENDOR_OWNER") return true;
+        const normalizedPermissions = userPermissions?.map(p => p.toLowerCase()) || [];
+        return normalizedPermissions.includes(module.toLowerCase());
+    };
+
+    const filteredMenu = menuItems.filter(item => hasPermission(item.key));
 
     const groups = sidebarGroups;
 

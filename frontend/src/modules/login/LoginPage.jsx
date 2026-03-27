@@ -13,6 +13,7 @@ import { validateEmail, validatePassword } from './validation';
 import Toast from '../../components/common/Toast/Toast';
 import { loginApi, verifyLoginOtpApi, resendOtpApi } from '../../api/auth.api';
 import ForgotPassword from './ForgotPassword';
+import { menuItems } from '../../utils/menuConfig';
 
 const LoginPage = () => {
     const navigate = useNavigate();
@@ -104,18 +105,36 @@ const LoginPage = () => {
                 otp: otpValue
             });
 
-            const { accessToken, refreshToken, role } = res.data.data;
+            const { accessToken, refreshToken, role, permissions, name } = res.data.data;
 
             localStorage.setItem("accessToken", accessToken);
             localStorage.setItem("refreshToken", refreshToken);
             localStorage.setItem("userRole", role);
+            if (name) localStorage.setItem("userName", name);
+            
+            if (permissions) {
+                localStorage.setItem("userPermissions", JSON.stringify(permissions));
+            } else {
+                localStorage.removeItem("userPermissions");
+            }
+            
             localStorage.setItem("isAuthenticated", "true");
 
             // Remove temporary login token
             localStorage.removeItem("login_token");
 
             showToast(res.data.message || 'Login successful!', 'success');
-            setTimeout(() => navigate('/'), 1000);
+            setTimeout(() => {
+                if (role === "SUPER_ADMIN" || role === "VENDOR_OWNER") {
+                    navigate('/');
+                } else if (!permissions || permissions.length === 0) {
+                    navigate('/no-access');
+                } else {
+                    const firstPerm = permissions[0].toLowerCase();
+                    const menuItem = menuItems.find(item => item.key.toLowerCase() === firstPerm);
+                    navigate(menuItem ? menuItem.path : '/');
+                }
+            }, 1000);
         } catch (err) {
             showToast(err.response?.data?.message || 'Verification failed');
         } finally {

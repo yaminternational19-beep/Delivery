@@ -38,21 +38,19 @@ const DashboardPage = () => {
 
         switch (userRole) {
             case 'SUPER_ADMIN':
+            case 'SUB_ADMIN':
                 return <SuperAdminDashboard />;
             case 'ADMIN':
                 return <AdminDashboard />;
-            case 'SUB_ADMIN':
-                return <CommonDashboard title="Sub Admin" />;
             case 'SUPPORT_AGENT':
                 return <CommonDashboard title="Support Agent" />;
             case 'FINANCE_USER':
                 return <CommonDashboard title="Finance" />;
             case 'VENDOR_OWNER':
+            case 'VENDOR_STAFF':
                 return <VendorOwnerDashboard />;
             case 'VENDOR_MANAGER':
                 return <CommonDashboard title="Vendor Manager" />;
-            case 'VENDOR_STAFF':
-                return <CommonDashboard title="Vendor Staff" />;
             default:
                 return <div className="unauthorized">Unauthorized Access</div>;
         }

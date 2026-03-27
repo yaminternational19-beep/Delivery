@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import ProductForm from '../ProductForm';
+import ProductForm from './ProductForm';
 import BulkUploadForm from './BulkUploadForm';
 import { ChevronLeft } from 'lucide-react';
 import Toast from '../../../../components/common/Toast/Toast';

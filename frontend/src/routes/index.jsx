@@ -1,6 +1,7 @@
 import React from 'react';
 import { Routes, Route, Navigate } from 'react-router-dom';
 import { Layout } from '../components/layout';
+import NoAccess from '../pages/NoAccess';
 import { LoginPage } from '../modules/login';
 import { DashboardPage } from '../modules/dashboard';
 import SubAdminManagement from '../modules/subadmin/SubAdminsPage';
@@ -32,13 +33,24 @@ import { VendorSettingsPage } from '../modules/vendor_settings';
 const ProtectedRoute = ({ children, allowedRoles = ["ALL"] }) => {
     const isAuthenticated = localStorage.getItem('isAuthenticated') === 'true';
     const userRole = localStorage.getItem('userRole') || 'SUPER_ADMIN';
+    const userPermissionsStr = localStorage.getItem('userPermissions');
+    const userPermissions = userPermissionsStr ? JSON.parse(userPermissionsStr) : [];
 
     if (!isAuthenticated) {
         return <Navigate to="/login" replace />;
     }
 
-    if (!allowedRoles.includes("ALL") && !allowedRoles.includes(userRole)) {
-        return <Navigate to="/" replace />;
+    if (userRole !== "SUPER_ADMIN" && userRole !== "VENDOR_OWNER") {
+        if (!userPermissions || userPermissions.length === 0) {
+            return <Navigate to="/no-access" replace />;
+        }
+    }
+
+    // Skip hardcoded role boundaries for dynamic permission-based roles
+    if (userRole !== "SUB_ADMIN" && userRole !== "VENDOR_STAFF") {
+        if (!allowedRoles.includes("ALL") && !allowedRoles.includes(userRole)) {
+            return <Navigate to="/" replace />;
+        }
     }
 
     return <Layout>{children}</Layout>;
@@ -49,6 +61,7 @@ const GlobalRoutes = () => {
         <Routes>
             {/* Public Routes */}
             <Route path="/login" element={<LoginPage />} />
+            <Route path="/no-access" element={<NoAccess />} />
 
             {/* Protected Routes - Wrapped in Layout */}
             <Route

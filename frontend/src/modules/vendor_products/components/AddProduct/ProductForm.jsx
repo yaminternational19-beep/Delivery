@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Plus, Trash2, Image as ImageIcon, Briefcase, Tag, Archive, DollarSign, FileText, CheckCircle2 } from 'lucide-react';
-import productFields from '../config/fields';
-import '../product.css';
+import productFields from '../../config/fields';
+import '../../product.css';
 
 const ProductForm = ({ onSave, showToast, categories = {}, brands = [], initialData = null }) => {
     // Initialize state dynamically from fields.js
