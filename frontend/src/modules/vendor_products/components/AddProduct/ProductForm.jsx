@@ -2,11 +2,23 @@ import React, { useState, useEffect } from 'react';
 import { Plus, Trash2, Image as ImageIcon, Briefcase, Tag, Archive, DollarSign, FileText, CheckCircle2 } from 'lucide-react';
 import productFields from '../../config/fields';
 import '../../product.css';
+import { createProductAPI, updateProductAPI } from '../../../../api/product.api';
+import { getCategoriesApi } from '../../../../api/categories.api';
+import { getSubCategoriesApi } from '../../../../api/subcategory.api';
+import { getBrandsApi } from '../../../../api/brands.api';
 
-const ProductForm = ({ onSave, showToast, categories = {}, brands = [], initialData = null }) => {
+const ProductForm = ({ onSave, showToast, initialData = null }) => {
     // Initialize state dynamically from fields.js
     const getInitialState = () => {
-        if (initialData) return { images: [], ...initialData };
+        if (initialData) {
+            const mappedImages = (initialData.images || []).map((url, i) => ({
+                id: `existing-${i}`,
+                file: null, // No new file object
+                preview: url,
+                image_url: url // Keep the original URL for backend tracking
+            }));
+            return { ...initialData, images: mappedImages };
+        }
 
         const state = { images: [] };
         Object.values(productFields).forEach(section => {
@@ -20,10 +32,37 @@ const ProductForm = ({ onSave, showToast, categories = {}, brands = [], initialD
     const [formData, setFormData] = useState(getInitialState());
     const [errors, setErrors] = useState({});
 
-    // Sync state if initialData changes (for editing)
+    const [rawCategories, setRawCategories] = useState([]);
+    const [rawSubCategories, setRawSubCategories] = useState([]);
+    const [rawBrands, setRawBrands] = useState([]);
+
+    useEffect(() => {
+        const fetchDropdownData = async () => {
+            try {
+                const [catRes, subRes, brandRes] = await Promise.all([
+                    getCategoriesApi(),
+                    getSubCategoriesApi(),
+                    getBrandsApi()
+                ]);
+                
+                const cats = catRes.data?.data?.records || catRes.data?.records || catRes.data || [];
+                const subs = subRes.data?.data?.records || subRes.data?.records || subRes.data || [];
+                const brnds = brandRes.data?.data?.records || brandRes.data?.records || brandRes.data || [];
+
+                setRawCategories(Array.isArray(cats) ? cats : []);
+                setRawSubCategories(Array.isArray(subs) ? subs : []);
+                setRawBrands(Array.isArray(brnds) ? brnds : []);
+            } catch (err) {
+                console.error("Failed to load form dropdowns:", err);
+            }
+        };
+        fetchDropdownData();
+    }, []);
+
+    // Sync state if initialData changes (for editing) - Using the same logic as getInitialState
     useEffect(() => {
         if (initialData) {
-            setFormData({ images: [], ...initialData });
+            setFormData(getInitialState());
         }
     }, [initialData]);
 
@@ -52,28 +91,30 @@ const ProductForm = ({ onSave, showToast, categories = {}, brands = [], initialD
         }));
     };
 
-    // Auto-calculation logic for Selling Price
-    useEffect(() => {
-        const { price, discountType, discountValue } = formData;
-        if (!price) return;
-
-        let sellingPrice = Number(price);
-        if (discountType === 'Percentage' && discountValue) {
-            sellingPrice = price - (price * Number(discountValue) / 100);
-        } else if (discountType === 'Flat' && discountValue) {
-            sellingPrice = price - Number(discountValue);
-        }
-
-        if (sellingPrice !== Number(formData.salePrice)) {
-            setFormData(prev => ({ ...prev, salePrice: Math.max(0, sellingPrice).toFixed(2) }));
-        }
-    }, [formData.price, formData.discountType, formData.discountValue]);
-
     const handleChange = (name, value) => {
         setFormData(prev => {
             const updated = { ...prev, [name]: value };
-            // Auto-clear subcategory if category changes
-            if (name === 'category') updated.subCategory = '';
+            
+            // Interactive bidirectional pricing calculation rules
+            if (name === 'mrp' || name === 'discount_value') {
+                const mrp = name === 'mrp' ? Number(value) : Number(prev.mrp) || 0;
+                const disc = name === 'discount_value' ? Number(value) : Number(prev.discount_value) || 0;
+                updated.sale_price = Math.max(0, mrp - (mrp * disc / 100)).toFixed(2);
+            } else if (name === 'sale_price') {
+                const sale = Number(value) || 0;
+                const mrp = Number(prev.mrp) || 0;
+                if (mrp > 0 && sale <= mrp) {
+                    updated.discount_value = Math.max(0, ((mrp - sale) / mrp) * 100).toFixed(2);
+                } else {
+                    updated.discount_value = 0;
+                }
+            }
+            
+            if (name === 'brand_id' && value !== 'Other') {
+                updated.custom_brand = '';
+            }
+            if (name === 'category_id') updated.subcategory_id = '';
+            
             return updated;
         });
 
@@ -88,13 +129,24 @@ const ProductForm = ({ onSave, showToast, categories = {}, brands = [], initialD
 
     const validate = () => {
         const newErrors = {};
-        Object.values(productFields).forEach(section => {
-            section.forEach(field => {
-                if (field.required && !formData[field.name]) {
-                    newErrors[field.name] = `${field.label} is required`;
-                }
-            });
+        const requiredFields = [
+            'category_id', 'name', 'description', 
+            'specification', 'mrp', 'stock', 
+            'min_order', 'variant_name'
+        ];
+
+        requiredFields.forEach(field => {
+            if (!formData[field] && formData[field] !== 0) {
+                newErrors[field] = 'This field is required';
+            }
         });
+
+        if (!formData.brand_id && !formData.custom_brand) {
+            newErrors['brand_id'] = 'Please select a brand or enter a custom brand';
+        }
+        if (formData.brand_id === 'Other' && (!formData.custom_brand || !formData.custom_brand.trim())) {
+            newErrors['custom_brand'] = 'Custom brand name is required when "Other" is selected';
+        }
 
         if ((formData.images || []).length === 0) {
             showToast('Please upload at least one image', 'error');
@@ -105,21 +157,104 @@ const ProductForm = ({ onSave, showToast, categories = {}, brands = [], initialD
         return Object.keys(newErrors).length === 0;
     };
 
-    const handleSubmit = (e) => {
+    const buildProductPayload = (data) => {
+        const payloadData = new FormData();
+
+        payloadData.append('vendor_id', 1);
+        payloadData.append('category_id', data.category_id ?? '');
+        payloadData.append('subcategory_id', data.subcategory_id ?? '');
+        payloadData.append('name', data.name || '');
+        payloadData.append('description', data.description || '');
+        
+        const isOtherBrand = data.brand_id === 'Other';
+        payloadData.append('brand_id', isOtherBrand ? '' : (data.brand_id ?? ''));
+        payloadData.append('custom_brand', isOtherBrand ? (data.custom_brand ?? '') : '');
+
+        const specData = { details: data.specification ? data.specification.split('\n') : [] };
+        payloadData.append('specification', JSON.stringify(specData));
+
+        payloadData.append('country_of_origin', data.country_of_origin || '');
+        payloadData.append('manufacture_date', data.manufacture_date || '');
+        payloadData.append('expiry_date', data.expiry_date || '');
+        
+        const isReturnAllowed = data.return_allowed === true || String(data.return_allowed).toLowerCase() === 'true' || Number(data.return_allowed) === 1;
+        payloadData.append('return_allowed', isReturnAllowed ? 'true' : 'false');
+        payloadData.append('return_days', isReturnAllowed ? (Number(data.return_days) || 0) : 0);
+
+        const variantObject = {
+            variant_name: data.variant_name || '',
+            unit: data.unit || 'PCS',
+            color: data.color || 'N/A',
+            sku: data.sku || '',
+            mrp: Number(data.mrp) || 0,
+            sale_price: Number(data.sale_price) || 0,
+            discount_value: Number(data.discount_value) || 0,
+            discount_type: 'Percent',
+            stock: Number(data.stock) || 0,
+            min_order: Number(data.min_order) || 1,
+            low_stock_alert: Number(data.low_stock_alert) || 5
+        };
+        payloadData.append('variants', JSON.stringify([variantObject]));
+
+        if (data.images && data.images.length > 0) {
+            data.images.forEach(img => {
+                if (img.file) {
+                    payloadData.append('images', img.file);
+                }
+            });
+            // Also append existing image URLs to keep them if needed by backend (optional depends on backend implementation)
+            const existingUrls = data.images.filter(img => !img.file).map(img => ({
+                image_url: img.image_url,
+                is_primary: data.images[0].id === img.id,
+                sort_order: data.images.indexOf(img)
+            }));
+            payloadData.append('images', JSON.stringify(existingUrls));
+        }
+
+        return payloadData;
+    };
+
+    const handleSubmit = async (e) => {
         e.preventDefault();
         if (validate()) {
-            onSave(formData);
-            showToast('Product saved successfully!', 'success');
+            try {
+                const payload = buildProductPayload(formData);
+                const isUpdate = !!initialData?.id;
+                
+                if (isUpdate) {
+                    await updateProductAPI(initialData.id, payload);
+                    showToast('Product updated successfully!', 'success');
+                } else {
+                    await createProductAPI(payload);
+                    showToast('Product added successfully!', 'success');
+                }
+                
+                onSave(); 
+            } catch (error) {
+                const backendMsg = error.response?.data?.message || 'Failed to process product. Please try again.';
+                showToast(backendMsg, 'error');
+                console.error('API Error:', error);
+            }
         } else {
-            showToast('Please fix the errors in the form', 'error');
+            showToast('Missing Fields: Please fill out all required attributes highlighted in red', 'error');
         }
     };
 
     // Get specific options for selects
     const getOptions = (fieldName) => {
-        if (fieldName === 'category') return Object.keys(categories);
-        if (fieldName === 'subCategory') return categories[formData.category] || [];
-        if (fieldName === 'brand') return brands;
+        if (fieldName === 'category_id') {
+            return rawCategories.map(c => ({ value: c.id, label: c.name }));
+        }
+        if (fieldName === 'subcategory_id') {
+            return rawSubCategories
+                .filter(s => (s.categoryId || s.category_id) === Number(formData.category_id))
+                .map(s => ({ value: s.id, label: s.name }));
+        }
+        if (fieldName === 'brand_id') {
+            const mappedBrands = rawBrands.map(b => ({ value: b.id, label: b.name }));
+            mappedBrands.push({ value: 'Other', label: 'Other' });
+            return mappedBrands;
+        }
 
         const field = Object.values(productFields).flat().find(f => f.name === fieldName);
         return field?.options || [];
@@ -139,7 +274,7 @@ const ProductForm = ({ onSave, showToast, categories = {}, brands = [], initialD
             onChange: (e) => handleChange(field.name, field.type === 'checkbox' ? e.target.checked : e.target.value),
             placeholder: field.placeholder,
             className: `dynamic-input ${errors[field.name] ? 'error-border' : ''}`,
-            disabled: field.readOnly || (field.name === 'subCategory' && !formData.category)
+            disabled: field.readOnly || (field.name === 'subcategory_id' && !formData.category_id)
         };
 
         switch (field.type) {
@@ -147,9 +282,13 @@ const ProductForm = ({ onSave, showToast, categories = {}, brands = [], initialD
                 return (
                     <select {...commonProps}>
                         <option value="">Select {field.label}</option>
-                        {getOptions(field.name).map(opt => (
-                            <option key={opt} value={opt}>{opt}</option>
-                        ))}
+                        {getOptions(field.name).map((opt, i) => {
+                            const val = typeof opt === 'object' ? opt.value : opt;
+                            const lbl = typeof opt === 'object' ? opt.label : opt;
+                            return (
+                                <option key={i} value={val}>{lbl}</option>
+                            );
+                        })}
                     </select>
                 );
             case 'textarea':
@@ -245,7 +384,7 @@ const ProductForm = ({ onSave, showToast, categories = {}, brands = [], initialD
                 <div className="form-actions-bar">
                     <button type="submit" className="submit-btn">
                         <Plus size={20} />
-                        <span>Add Product</span>
+                        <span>{initialData ? 'Update Product' : 'Add Product'}</span>
                     </button>
                 </div>
             </form>

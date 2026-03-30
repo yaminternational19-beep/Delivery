@@ -2,8 +2,11 @@ import React, { useState, useEffect } from 'react';
 import { Plus, Trash2, Upload, X, Archive, CheckSquare, Square, ImageIcon } from 'lucide-react';
 import { parseExcel } from './ExcelParser';
 import productFields from '../../config/fields';
+import { getCategoriesApi } from '../../../../api/categories.api';
+import { getSubCategoriesApi } from '../../../../api/subcategory.api';
+import { getBrandsApi } from '../../../../api/brands.api';
 
-const BulkUploadForm = ({ onSaveAll, showToast, categories = {}, brands = [] }) => {
+const BulkUploadForm = ({ onSaveAll, showToast }) => {
     // Get all fields flattened for table mapping
     const allFields = Object.values(productFields).flat();
 
@@ -12,13 +15,40 @@ const BulkUploadForm = ({ onSaveAll, showToast, categories = {}, brands = [] }) 
         allFields.forEach(field => {
             p[field.name] = field.type === 'checkbox' ? false : '';
         });
-        if (p.hasOwnProperty('minOrder') && !p.minOrder) p.minOrder = '1';
+        if (p.hasOwnProperty('min_order') && !p.min_order) p.min_order = '1';
         return p;
     };
 
     const [subMode, setSubMode] = useState('manual'); // 'manual' | 'csv'
     const [products, setProducts] = useState([createInitialProduct()]);
     const [errors, setErrors] = useState({});
+    
+    const [rawCategories, setRawCategories] = useState([]);
+    const [rawSubCategories, setRawSubCategories] = useState([]);
+    const [rawBrands, setRawBrands] = useState([]);
+
+    useEffect(() => {
+        const fetchDropdownData = async () => {
+            try {
+                const [catRes, subRes, brandRes] = await Promise.all([
+                    getCategoriesApi(),
+                    getSubCategoriesApi(),
+                    getBrandsApi()
+                ]);
+                
+                const cats = catRes.data?.data?.records || catRes.data?.records || catRes.data || [];
+                const subs = subRes.data?.data?.records || subRes.data?.records || subRes.data || [];
+                const brnds = brandRes.data?.data?.records || brandRes.data?.records || brandRes.data || [];
+
+                setRawCategories(Array.isArray(cats) ? cats : []);
+                setRawSubCategories(Array.isArray(subs) ? subs : []);
+                setRawBrands(Array.isArray(brnds) ? brnds : []);
+            } catch (err) {
+                console.error("Failed to load form dropdowns:", err);
+            }
+        };
+        fetchDropdownData();
+    }, []);
 
     const addRow = () => {
         setProducts([...products, createInitialProduct()]);
@@ -32,27 +62,25 @@ const BulkUploadForm = ({ onSaveAll, showToast, categories = {}, brands = [] }) 
         const updated = [...products];
         updated[index] = { ...updated[index], [fieldName]: value };
 
+        const target = updated[index];
+
         // Dependency logic
-        if (fieldName === 'category') {
-            updated[index].subCategory = '';
+        if (fieldName === 'category_id') {
+            target.subcategory_id = '';
         }
 
-        // Auto-calculation logic for Selling Price (MIRRORED FROM ProductForm)
-        if (['price', 'discountValue', 'discountType'].includes(fieldName) || fieldName === 'price') {
-            const { price, discountValue, discountType } = updated[index];
-            if (price) {
-                let sellingPrice = Number(price);
-                // Note: Bulk mode might not have discountType if it's not in fields.js or if it's hardcoded
-                // But we should follow fields.js structure.
-                if (discountType === 'Percentage' && discountValue) {
-                    sellingPrice = price - (price * Number(discountValue) / 100);
-                } else if (discountType === 'Flat' && discountValue) {
-                    sellingPrice = price - Number(discountValue);
-                } else if (!discountType && discountValue) {
-                    // Default fallback if discountType is missing but value exists
-                    sellingPrice = price - Number(discountValue);
-                }
-                updated[index].salePrice = Math.max(0, sellingPrice).toFixed(2);
+        // Two-way interactive pricing calculation
+        if (fieldName === 'mrp' || fieldName === 'discount_value') {
+            const mrp = Number(target.mrp) || 0;
+            const disc = Number(target.discount_value) || 0;
+            target.sale_price = Math.max(0, mrp - (mrp * disc / 100)).toFixed(2);
+        } else if (fieldName === 'sale_price') {
+            const sale = Number(target.sale_price) || 0;
+            const mrp = Number(target.mrp) || 0;
+            if (mrp > 0 && sale <= mrp) {
+                target.discount_value = Math.max(0, ((mrp - sale) / mrp) * 100).toFixed(2);
+            } else {
+                target.discount_value = 0;
             }
         }
 
@@ -90,8 +118,25 @@ const BulkUploadForm = ({ onSaveAll, showToast, categories = {}, brands = [] }) 
                 const p = { id: Date.now() + idx, images: [] };
                 allFields.forEach(field => {
                     // Simple mapping from excel column names (case insensitive)
-                    const excelVal = row[field.label] || row[field.name] || row[field.label.toLowerCase()] || '';
-                    p[field.name] = field.type === 'checkbox' ? (excelVal === 'true' || excelVal === true) : excelVal;
+                    let excelVal = row[field.label] || row[field.name] || row[field.label.toLowerCase()] || '';
+                    
+                    if (excelVal) {
+                        // Translation from Excel String identifiers back into strictly ID mapped structures
+                        if (field.name === 'category_id') {
+                            const matched = rawCategories.find(c => c.name.toLowerCase().trim() === String(excelVal).toLowerCase().trim());
+                            excelVal = matched ? matched.id : excelVal;
+                        }
+                        if (field.name === 'subcategory_id') {
+                            const matched = rawSubCategories.find(s => s.name.toLowerCase().trim() === String(excelVal).toLowerCase().trim());
+                            excelVal = matched ? matched.id : excelVal;
+                        }
+                        if (field.name === 'brand_id') {
+                            const matched = rawBrands.find(b => b.name.toLowerCase().trim() === String(excelVal).toLowerCase().trim());
+                            excelVal = matched ? matched.id : excelVal;
+                        }
+                    }
+
+                    p[field.name] = field.type === 'checkbox' ? (excelVal === 'true' || excelVal === true || excelVal === '1' || excelVal === 1) : excelVal;
                 });
                 return p;
             });
@@ -127,21 +172,38 @@ const BulkUploadForm = ({ onSaveAll, showToast, categories = {}, brands = [] }) 
         return isValid;
     };
 
-    const handleConfirm = () => {
+    const handleConfirm = async () => {
         if (validateAll()) {
-            onSaveAll(products);
-            setProducts([]);
-            setErrors({});
-            showToast('All products saved successfully!', 'success');
+            const survivors = await onSaveAll(products);
+            
+            if (survivors && survivors.length > 0) {
+                // Update table with only failed products (includes error msg)
+                setProducts(survivors);
+                setErrors({});
+            } else {
+                // Everything saved
+                setProducts([createInitialProduct()]);
+                setErrors({});
+            }
         } else {
-            showToast('Please correct validation errors', 'error');
+            showToast('Missing Fields: Please fill out all required attributes highlighted in red', 'error');
         }
     };
 
     const getOptions = (fieldName, product) => {
-        if (fieldName === 'category') return Object.keys(categories);
-        if (fieldName === 'subCategory') return categories[product.category] || [];
-        if (fieldName === 'brand') return brands;
+        if (fieldName === 'category_id') {
+            return rawCategories.map(c => ({ value: c.id, label: c.name }));
+        }
+        if (fieldName === 'subcategory_id') {
+            return rawSubCategories
+                .filter(s => (s.categoryId || s.category_id) === Number(product.category_id))
+                .map(s => ({ value: s.id, label: s.name }));
+        }
+        if (fieldName === 'brand_id') {
+            const mappedBrands = rawBrands.map(b => ({ value: b.id, label: b.name }));
+            mappedBrands.push({ value: 'Other', label: 'Other' });
+            return mappedBrands;
+        }
 
         const field = allFields.find(f => f.name === fieldName);
         return field?.options || [];
@@ -149,11 +211,11 @@ const BulkUploadForm = ({ onSaveAll, showToast, categories = {}, brands = [] }) 
 
     const renderCellInput = (field, product, index) => {
         const commonProps = {
-            value: product[field.name],
+            value: product[field.name] || '',
             onChange: (e) => updateProduct(index, field.name, field.type === 'checkbox' ? e.target.checked : e.target.value),
             className: errors[index]?.[field.name] ? 'field-error' : '',
             placeholder: field.label + (field.required ? ' *' : ''),
-            disabled: field.readOnly || (field.name === 'subCategory' && !product.category)
+            disabled: field.readOnly || (field.name === 'subcategory_id' && !product.category_id)
         };
 
         if (field.condition) {
@@ -166,9 +228,13 @@ const BulkUploadForm = ({ onSaveAll, showToast, categories = {}, brands = [] }) 
                 return (
                     <select {...commonProps}>
                         <option value="">{field.label}</option>
-                        {getOptions(field.name, product).map(opt => (
-                            <option key={opt} value={opt}>{opt}</option>
-                        ))}
+                        {getOptions(field.name, product).map((opt, i) => {
+                            const val = typeof opt === 'object' ? opt.value : opt;
+                            const lbl = typeof opt === 'object' ? opt.label : opt;
+                            return (
+                                <option key={i} value={val}>{lbl}</option>
+                            );
+                        })}
                     </select>
                 );
             case 'textarea':
@@ -255,7 +321,7 @@ const BulkUploadForm = ({ onSaveAll, showToast, categories = {}, brands = [] }) 
                     <thead>
                         <tr>
                             <th className="sticky-col" rowSpan="2">#</th>
-                            <th style={{ minWidth: '150px' }} rowSpan="2">Media</th>
+                            <th style={{ minWidth: '150px' }} rowSpan="2">Status / Media</th>
                             {sections.map(section => (
                                 <th
                                     key={section}
@@ -282,9 +348,14 @@ const BulkUploadForm = ({ onSaveAll, showToast, categories = {}, brands = [] }) 
                     </thead>
                     <tbody>
                         {products.map((p, i) => (
-                            <tr key={p.id} className={errors[i] ? 'row-has-error' : ''}>
+                            <tr key={p.id} className={`${errors[i] ? 'row-has-error' : ''} ${p.uploadError ? 'api-error-row' : ''}`}>
                                 <td className="row-index sticky-col">{i + 1}</td>
                                 <td>
+                                    {p.uploadError && (
+                                        <div className="row-api-error-alert" title={p.uploadError}>
+                                            <X size={12} /> {p.uploadError}
+                                        </div>
+                                    )}
                                     <div className="bulk-image-manager">
                                         <label className="add-img-cell">
                                             <Plus size={16} />
@@ -335,7 +406,9 @@ const BulkUploadForm = ({ onSaveAll, showToast, categories = {}, brands = [] }) 
                     </button>
                 )}
                 <div className="footer-right-group">
-                    <button className="save-all-btn" onClick={handleConfirm}>Confirm & Save All</button>
+                    <button className="save-all-btn" onClick={handleConfirm}>
+                        {products.some(p => p.uploadError) ? 'Retry Failed Products' : 'Confirm & Save All'}
+                    </button>
                 </div>
             </div>
         </div>
@@ -343,3 +416,5 @@ const BulkUploadForm = ({ onSaveAll, showToast, categories = {}, brands = [] }) 
 };
 
 export default BulkUploadForm;
+
+

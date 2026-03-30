@@ -1,5 +1,5 @@
 import React from 'react';
-import { Eye, Edit3, Power, CheckSquare, Square, AlertCircle } from 'lucide-react';
+import { Eye, Edit3, Power, CheckSquare, Square, AlertCircle, Plus, Trash2 } from 'lucide-react';
 import ActionButton from '../../../components/common/ActionButton/ActionButton';
 
 const VendorProductList = ({
@@ -9,8 +9,21 @@ const VendorProductList = ({
     onSelectAll,
     onView,
     onEdit,
-    onToggleStatus
+    onToggleStatus,
+    onUpdateStock,
+    onDelete
 }) => {
+    const [editingStockId, setEditingStockId] = React.useState(null);
+    const [tempStock, setTempStock] = React.useState('');
+
+    const handleStockSubmit = (product) => {
+        const val = parseInt(tempStock);
+        if (!isNaN(val)) {
+            onUpdateStock(product, val);
+        }
+        setEditingStockId(null);
+    };
+
 
     const allSelected =
         products.length > 0 &&
@@ -79,7 +92,7 @@ const VendorProductList = ({
                         <th>DATES (MFG/EXP)</th>
                         <th style={{ textAlign: 'center' }}>LIVE STATUS</th>
                         <th style={{ textAlign: 'center' }}>APPROVAL</th>
-                        <th style={{ textAlign: 'right' }}>ACTIONS</th>
+                        <th style={{ textAlign: 'center' }}>ACTIONS</th>
                     </tr>
                 </thead>
 
@@ -158,9 +171,56 @@ const VendorProductList = ({
                                 </td>
 
                                 <td>
-                                    <span className={`stock-status-badge ${stockStatus.class}`}>
-                                        {stockStatus.label}
-                                    </span>
+                                    {editingStockId === product.id ? (
+                                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                            <input
+                                                type="number"
+                                                autoFocus
+                                                className="quick-stock-input"
+                                                value={tempStock}
+                                                onChange={(e) => setTempStock(e.target.value)}
+                                                onBlur={() => handleStockSubmit(product)}
+                                                onKeyDown={(e) => e.key === 'Enter' && handleStockSubmit(product)}
+                                                style={{
+                                                    width: '80px',
+                                                    padding: '4px 8px',
+                                                    borderRadius: '6px',
+                                                    border: '2px solid var(--primary-color)',
+                                                    fontWeight: 800,
+                                                    textAlign: 'center',
+                                                    outline: 'none',
+                                                    boxShadow: '0 0 0 3px rgba(79, 70, 229, 0.1)'
+                                                }}
+                                            />
+                                        </div>
+                                    ) : (
+                                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                            <span className={`stock-status-badge ${stockStatus.class}`}>
+                                                {stockStatus.label}
+                                            </span>
+                                            <button 
+                                                onClick={() => {
+                                                    setEditingStockId(product.id);
+                                                    setTempStock(product.stock);
+                                                }}
+                                                style={{
+                                                    background: '#f1f5f9',
+                                                    border: 'none',
+                                                    padding: '4px',
+                                                    borderRadius: '4px',
+                                                    cursor: 'pointer',
+                                                    color: '#64748b',
+                                                    display: 'flex',
+                                                    alignItems: 'center',
+                                                    transition: 'all 0.2s'
+                                                }}
+                                                title="Quick Update Stock"
+                                                className="hover-primary"
+                                            >
+                                                <Plus size={14} strokeWidth={3} />
+                                            </button>
+                                        </div>
+                                    )}
                                 </td>
 
                                 <td>
@@ -209,6 +269,13 @@ const VendorProductList = ({
                                             variant={product.isActive ? 'perm' : 'secondary'}
                                             size={16}
                                             tooltip={product.isActive ? 'Hide from Shop' : 'Make Live'}
+                                        />
+                                        <ActionButton
+                                            icon={Trash2}
+                                            onClick={() => onDelete?.(product.id)}
+                                            variant="danger"
+                                            size={16}
+                                            tooltip="Delete Product"
                                         />
                                     </div>
                                 </td>

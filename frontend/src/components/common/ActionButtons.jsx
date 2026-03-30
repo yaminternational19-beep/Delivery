@@ -1,7 +1,7 @@
 import React from 'react';
-import { Eye, ShieldCheck, Edit, Trash2, Power, Zap, ZapOff } from 'lucide-react';
+import { Eye, ShieldCheck, Edit, Trash2, Power, Zap, ZapOff, Package } from 'lucide-react';
 
-const ActionButtons = ({ onView, onPermissions, onEdit, onDelete, onToggleStatus, onToggleAutoApprove, isAutoApprove, isActive, type }) => {
+const ActionButtons = ({ onView, onPermissions, onEdit, onDelete, onStock, onToggleStatus, onToggleAutoApprove, isAutoApprove, isActive, type }) => {
     const isCustomer = type === 'customer';
 
     return (
@@ -49,6 +49,18 @@ const ActionButtons = ({ onView, onPermissions, onEdit, onDelete, onToggleStatus
                     style={{ color: isAutoApprove ? '#8b5cf6' : '#94a3b8' }}
                 >
                     {isAutoApprove ? <Zap size={18} strokeWidth={2} fill="#8b5cf6" /> : <ZapOff size={18} strokeWidth={2} />}
+                </button>
+            )}
+
+            {onStock && (
+                <button
+                    className="action-btn action-stock"
+                    onClick={onStock}
+                    type="button"
+                    title="Manage Stock"
+                    style={{ color: '#0ea5e9' }}
+                >
+                    <Package size={18} strokeWidth={2} />
                 </button>
             )}
 

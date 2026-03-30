@@ -790,6 +790,33 @@
     animation: formSlideUp 0.6s cubic-bezier(0.23, 1, 0.32, 1);
 }
 
+/* API Error Row Highlighting */
+.api-error-row td {
+    background-color: #fff1f2 !important;
+}
+
+.row-api-error-alert {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    background: #fecaca;
+    color: #991b1b;
+    padding: 2px 8px;
+    border-radius: 6px;
+    font-size: 10px;
+    font-weight: 700;
+    margin-bottom: 6px;
+    border: 1px solid #f87171;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: 130px;
+}
+
+.api-error-row:hover td {
+    background-color: #ffe4e6 !important;
+}
+
 @keyframes formSlideUp {
     0% {
         transform: translateY(20px);

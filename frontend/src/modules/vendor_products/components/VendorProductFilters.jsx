@@ -26,7 +26,6 @@ const VendorProductFilters = ({ filters, setFilters, categories, brands, onClear
             <div className="filter-group">
                 {/* Category */}
                 <div className="input-with-icon">
-                    <Filter size={14} className="field-icon" />
                     <select
                         className="filter-select"
                         value={filters.category || ''}

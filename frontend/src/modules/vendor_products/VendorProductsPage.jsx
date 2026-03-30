@@ -5,128 +5,86 @@ import VendorProductList from './components/VendorProductList';
 import AddProduct from './components/AddProduct/AddProduct';
 import ProductView from './components/ProductView';
 import Toast from '../../components/common/Toast/Toast';
-import { Plus, ChevronLeft, ChevronRight, ArrowLeft } from 'lucide-react';
+import { Plus, ChevronLeft, ChevronRight, ArrowLeft, Trash2, Download, FileSpreadsheet } from 'lucide-react';
 import './VendorProducts.css';
+import { fetchProducts, toggleProductLiveAPI, updateStockAPI, deleteProductAPI } from '../../api/product.api';
+import * as XLSX from 'xlsx';
 
 const VendorProductsPage = () => {
-    // Configuration Data
-    const CATEGORIES_DATA = {
-        'Electronics': ['Audio', 'Mobile', 'Laptop', 'Accessories', 'Camera'],
-        'Fashion': ['Footwear', 'Men Wear', 'Women Wear', 'Kids Wear', 'Watches'],
-        'Groceries': ['Dairy', 'Fruits', 'Vegetables', 'Beverages', 'Snacks'],
-        'Furniture': ['Chairs', 'Tables', 'Beds', 'Decor']
+    // State
+    const [products, setProducts] = useState([]);
+
+
+    const loadProductsList = async () => {
+        try {
+            const res = await fetchProducts();
+
+            // Simplified: Backend now returns the array of records directly in data
+            const remoteData = res.data?.data || res.data || [];
+
+            const mappedProducts = remoteData.map(prod => ({
+                id: prod.id,
+                variant_id: prod.inventory_info?.variant_id, // Carry the variant ID for quick-edits
+                itemId: prod.slug || `ITEM-${prod.id}`,
+                name: prod.name,
+                brand: prod.brand_name || 'N/A',
+                category: prod.category_name || 'N/A',
+                subCategory: prod.subcategory_name || '--',
+                MRP: prod.inventory_info?.min_mrp || 0,
+                salePrice: prod.inventory_info?.min_price || 0,
+                discountValue: prod.inventory_info?.max_discount || 0,
+                discountType: prod.inventory_info?.discount_type || 'Percent',
+                image: prod.primary_image || 'https://via.placeholder.com/200',
+                isApproved: prod.approval_status === 'APPROVED',
+                rejectionReason: prod.rejection_reason,
+                isActive: prod.is_live === 1,
+                createdAt: prod.created_at,
+                manufactureDate: prod.manufacture_date,
+                expiryDate: prod.expiry_date,
+                description: prod.description,
+
+                // RAW ID MAPPING: Passing actual DB IDs for flawless Dropdown hydration during Edit
+                category_id: prod.category_id,
+                subcategory_id: prod.subcategory_id,
+                brand_id: prod.brand_id || (prod.custom_brand ? 'Other' : ''),
+                custom_brand: prod.custom_brand || '',
+
+                mrp: prod.inventory_info?.min_mrp || 0,
+                sale_price: prod.inventory_info?.min_price || 0,
+                discount_value: prod.inventory_info?.max_discount || 0,
+                stock: prod.inventory_info?.total_stock || 0,
+                min_order: 1,
+                low_stock_alert: prod.inventory_info?.low_stock_alert || 5,
+                unit: prod.inventory_info?.unit || 'PCS',
+                variant_name: prod.inventory_info?.variant_name || 'Single',
+                color: prod.inventory_info?.color || 'N/A',
+                sku: prod.inventory_info?.sku || '',
+
+                specification: prod.specification && typeof prod.specification === 'object'
+                    ? Object.entries(prod.specification).map(([k, v]) => `${k}: ${v}`).join('\n')
+                    : 'No Specification Provided',
+                country_of_origin: prod.country_of_origin || 'Unknown',
+                manufacture_date: prod.manufacture_date || '',
+                expiry_date: prod.expiry_date || '',
+                return_allowed: prod.return_allowed === 1,
+                return_days: prod.return_days || 0,
+                images: prod.all_images || []
+
+            }));
+
+            setProducts(mappedProducts);
+
+        } catch (error) {
+            // Toast not available inside this scope directly if it uses showToast from below, wait...
+            // showToast is defined after this in the original file, so I need to make sure how I place this.
+            // Actually I can define this inside the component, but it requires showToast to be hoisted or just use console.error
+            console.error("GET Products Error:", error);
+        }
     };
 
-    const BRANDS_DATA = ['Sony', 'Samsung', 'Nike', 'Amul', 'Apple', 'Logitech', 'Adidas'];
-
-    const MOCK_PRODUCTS = [
-        {
-            id: 'PROD-101',
-            itemId: 'ITEM-8829',
-            name: 'Sony WH-1000XM5 Wireless Headphones',
-            brand: 'Sony',
-            category: 'Electronics',
-            subCategory: 'Audio',
-            MRP: 34990,
-            salePrice: 29990,
-            discountValue: 14,
-            discountType: 'Percentage',
-            stock: 45,
-            image: 'https://images.unsplash.com/photo-1505740420928-5e560c06d30e?w=200&h=200&fit=crop',
-            isApproved: true,
-            createdAt: '2024-02-10',
-            manufactureDate: '2023-11-15',
-            expiryDate: '2026-11-15',
-            description: 'Industry leading noise canceling headphones',
-            unit: 'PCS'
-        },
-        {
-            id: 'PROD-102',
-            itemId: 'ITEM-1102',
-            name: 'Nike Air Max 270 React',
-            brand: 'Nike',
-            category: 'Fashion',
-            subCategory: 'Footwear',
-            MRP: 12995,
-            salePrice: 8995,
-            discountValue: 4000,
-            discountType: 'Flat',
-            stock: 12,
-            image: 'https://images.unsplash.com/photo-1542291026-7eec264c27ff?w=200&h=200&fit=crop',
-            isApproved: true,
-            createdAt: '2024-02-12',
-            manufactureDate: '2023-08-20',
-            expiryDate: '--',
-            description: 'Premium sports shoes for daily use',
-            unit: 'Pair'
-        },
-        {
-            id: 'PROD-103',
-            itemId: 'ITEM-4492',
-            name: 'Samsung Galaxy S24 Ultra',
-            brand: 'Samsung',
-            category: 'Electronics',
-            subCategory: 'Mobile',
-            MRP: 129999,
-            salePrice: 124999,
-            discountValue: 5000,
-            discountType: 'Flat',
-            stock: 3,
-            image: 'https://images.unsplash.com/photo-1610945265064-0e34e5519bbf?w=200&h=200&fit=crop',
-            isApproved: false,
-            createdAt: '2024-02-15',
-            manufactureDate: '2024-01-10',
-            expiryDate: '2027-01-10',
-            description: 'Latest flagship smartphone with AI features',
-            unit: 'PCS'
-        },
-        {
-            id: 'PROD-104',
-            itemId: 'ITEM-9901',
-            name: 'Logitech G Pro X Superlight',
-            brand: 'Logitech',
-            category: 'Electronics',
-            subCategory: 'Accessories',
-            MRP: 15995,
-            salePrice: 13495,
-            discountValue: 15,
-            discountType: 'Percentage',
-            stock: 0,
-            image: 'https://images.unsplash.com/photo-1527698266440-12104e498b76?w=200&h=200&fit=crop',
-            isApproved: true,
-            createdAt: '2024-01-20',
-            manufactureDate: '2023-05-15',
-            expiryDate: '--',
-            description: 'Ultra-lightweight wireless gaming mouse',
-            unit: 'PCS'
-        },
-        {
-            id: 'PROD-105',
-            itemId: 'ITEM-2231',
-            name: 'Amul Gold Milk 1L',
-            brand: 'Amul',
-            category: 'Groceries',
-            subCategory: 'Dairy',
-            MRP: 66,
-            salePrice: 64,
-            discountValue: 2,
-            discountType: 'Flat',
-            stock: 150,
-            image: 'https://images.unsplash.com/photo-1563636619-e910009355dc?w=200&h=200&fit=crop',
-            isApproved: true,
-            createdAt: '2024-02-18',
-            manufactureDate: '2024-02-18',
-            expiryDate: '2024-02-20',
-            description: 'Full cream fresh milk',
-            unit: 'Litre'
-        }
-    ];
-
-    // State
-    const [products, setProducts] = useState(MOCK_PRODUCTS.map(p => ({
-        ...p,
-        isActive: Math.random() > 0.3
-    })));
+    useEffect(() => {
+        loadProductsList();
+    }, []);
 
     const [selectedRows, setSelectedRows] = useState([]);
     const [showAddPage, setShowAddPage] = useState(false);
@@ -186,6 +144,19 @@ const VendorProductsPage = () => {
         });
     }, [products, filters]);
 
+    // Dynamic Filter Data Derived Extracted from Loaded Products
+    const filterBrands = useMemo(() => {
+        return [...new Set(products.map(p => p.brand).filter(b => b && b !== 'N/A'))].sort();
+    }, [products]);
+
+    const filterCategories = useMemo(() => {
+        const catKeys = [...new Set(products.map(p => p.category).filter(c => c && c !== 'N/A'))].sort();
+        // Return object since the filter component iterates over Object.keys
+        const obj = {};
+        catKeys.forEach(k => obj[k] = []);
+        return obj;
+    }, [products]);
+
     // Pagination Logic
     const paginatedData = useMemo(() => {
         const start = (pagination.page - 1) * pagination.limit;
@@ -215,8 +186,53 @@ const VendorProductsPage = () => {
         showToast(message, type);
     };
 
-    const handleToggleStatus = (id) => {
-        setProducts(prev => prev.map(p => p.id === id ? { ...p, isActive: !p.isActive } : p));
+    const handleToggleStatus = async (id) => {
+        const product = products.find(p => p.id === id);
+        if (!product) return;
+
+        const newLiveStatus = !product.isActive;
+
+        try {
+            await toggleProductLiveAPI(id, newLiveStatus);
+            setProducts(prev => prev.map(p => p.id === id ? { ...p, isActive: newLiveStatus } : p));
+            showToast(`Product is now ${newLiveStatus ? 'Live' : 'Hidden'}`, 'success');
+        } catch (error) {
+            const errorMsg = error.response?.data?.message || 'Failed to update live status';
+            showToast(errorMsg, 'error');
+            console.error("Toggle Live Error:", error);
+        }
+    };
+
+    const handleStockUpdate = (product) => {
+        showToast(`Stock management for ${product.name} coming soon!`, 'info');
+        console.log("Manage stock for:", product);
+    };
+
+    const handleQuickStockUpdate = async (product, newTotal) => {
+        const oldStock = Number(product.stock) || 0;
+        if (newTotal === oldStock) return;
+
+        const delta = newTotal - oldStock;
+        const change_type = delta > 0 ? 'ADD' : 'REMOVE';
+        const absQty = Math.abs(delta);
+
+        try {
+            await updateStockAPI({
+                product_id: product.id,
+                variant_id: product.variant_id,
+                change_type: change_type,
+                quantity: absQty,
+                note: `Stock updated from dashboard (Quick Edit: ${oldStock} -> ${newTotal})`
+            });
+
+            // Update local state for immediate feedback
+            setProducts(prev => prev.map(p => p.id === product.id ? { ...p, stock: newTotal } : p));
+            showToast('Stock updated successfully', 'success');
+        } catch (error) {
+            const msg = error.response?.data?.message || 'Failed to update stock';
+            showToast(msg, 'error');
+            console.error("Stock Update Error:", error);
+        }
     };
 
     const handleView = (product) => setViewingProduct(product);
@@ -224,6 +240,66 @@ const VendorProductsPage = () => {
     const handleEdit = (product) => {
         setEditingProduct(product);
         setShowAddPage(true);
+    };
+
+    const handleDelete = async (id) => {
+        const product = products.find(p => p.id === id);
+        if (!product) return;
+
+        if (!window.confirm(`Are you sure you want to delete "${product.name}"? This will permanently remove it from the store and delete all variant/image data.`)) {
+            return;
+        }
+
+        try {
+            await deleteProductAPI(id);
+            setProducts(prev => prev.filter(p => p.id !== id));
+            showToast('Product deleted successfully', 'success');
+        } catch (error) {
+            const msg = error.response?.data?.message || 'Failed to delete product';
+            showToast(msg, 'error');
+            console.error("Delete Product Error:", error);
+        }
+    };
+
+    const handleDownloadTemplate = () => {
+        const headers = [
+            "category_id", "subcategory_id", "brand_id", "custom_brand", "name", "description",
+            "country_of_origin", "manufacture_date", "expiry_date", "return_allowed", "return_days",
+            "variant_name", "unit", "color", "stock", "mrp", "sale_price", "discount_type", "discount_value", "low_stock_alert"
+        ];
+        
+        const sampleData = [
+            {
+                category_id: 1,
+                subcategory_id: "",
+                brand_id: "",
+                custom_brand: "Example Brand",
+                name: "Product Name",
+                description: "Product details here",
+                country_of_origin: "India",
+                manufacture_date: "2024-01-01",
+                expiry_date: "2025-01-01",
+                return_allowed: 1,
+                return_days: 7,
+                variant_name: "Default",
+                unit: "kg",
+                color: "Red",
+                stock: 100,
+                mrp: 500,
+                sale_price: 450,
+                discount_type: "Percent",
+                discount_value: 10,
+                low_stock_alert: 10
+            }
+        ];
+
+        const worksheet = XLSX.utils.json_to_sheet(sampleData, { header: headers });
+        const workbook = XLSX.utils.book_new();
+        XLSX.utils.book_append_sheet(workbook, worksheet, "Bulk Import Template");
+        
+        // Final Download
+        XLSX.writeFile(workbook, "Shipzzy_Bulk_Product_Template.xlsx");
+        showToast("Bulk Excel Template Downloaded!", "success");
     };
 
     const handleBack = () => {
@@ -254,6 +330,13 @@ const VendorProductsPage = () => {
                         </div>
 
                         <div style={{ display: 'flex', gap: '12px' }}>
+                            <button 
+                                className="btn btn-secondary" 
+                                style={{ background: '#fff', border: '1px solid #e2e8f0', display: 'flex', alignItems: 'center', gap: '8px' }}
+                                onClick={handleDownloadTemplate}
+                            >
+                                <FileSpreadsheet size={18} color="#10b981" /> Download Template
+                            </button>
                             <button className="btn btn-primary" onClick={() => setShowAddPage(true)}>
                                 <Plus size={18} /> Add Product
                             </button>
@@ -268,8 +351,8 @@ const VendorProductsPage = () => {
                         <VendorProductFilters
                             filters={filters}
                             setFilters={setFilters}
-                            categories={CATEGORIES_DATA}
-                            brands={BRANDS_DATA}
+                            categories={filterCategories}
+                            brands={filterBrands}
                             selectedCount={selectedRows.length}
                             onExport={handleExport}
                             onClear={() => setFilters({
@@ -285,6 +368,8 @@ const VendorProductsPage = () => {
                             onView={handleView}
                             onEdit={handleEdit}
                             onToggleStatus={handleToggleStatus}
+                            onUpdateStock={handleQuickStockUpdate}
+                            onDelete={handleDelete}
                         />
 
                         {/* Pagination */}
@@ -327,19 +412,11 @@ const VendorProductsPage = () => {
                     </div>
 
                     <AddProduct
-                        categories={CATEGORIES_DATA}
-                        brands={BRANDS_DATA}
                         onBack={handleBack}
                         initialData={editingProduct}
-                        onSave={(newProducts) => {
-                            if (editingProduct) {
-                                setProducts(prev => prev.map(p =>
-                                    p.id === editingProduct.id ? { ...newProducts[0], id: p.id, isActive: p.isActive } : p
-                                ));
-                            } else {
-                                setProducts(prev => [...newProducts.map(p => ({ ...p, isActive: true })), ...prev]);
-                            }
+                        onSave={() => {
                             handleBack();
+                            loadProductsList();
                         }}
                     />
                 </>

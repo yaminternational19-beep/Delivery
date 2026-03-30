@@ -20,4 +20,4 @@ export const deleteSubAdminApi = (id) =>
     api.delete(`/subadmin/${id}`);
 
 export const updateSubAdminPermissionsApi = (id, permissions) =>
-    api.patch(`/subadmin/${id}/permissions`, { permissions });
+    api.patch(`/subadmin/${id}/permissions`, { permissions });

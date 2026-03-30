@@ -20,4 +20,23 @@ router.post("/",
   productController.createProduct
 );
 
+// PUT update stock
+import { updateStockSchema } from './product.validator.js';
+router.put("/update-stock", authenticate, validate(updateStockSchema), productController.updateStock);
+
+// PUT update product with images
+router.put("/:id", 
+  authenticate,
+  upload.array("images", 10),
+  jsonParser(['specification', 'variants', 'images']),
+  validate(createProductSchema),
+  productController.updateProduct
+);
+
+// PATCH toggle live status
+router.patch("/:id/toggle-live", authenticate, productController.toggleLive);
+
+// DELETE product
+router.delete("/:id", authenticate, productController.deleteProduct);
+
 export default router;

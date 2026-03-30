@@ -3,8 +3,8 @@ import Joi from 'joi';
 const createProductSchema = Joi.object({
       vendor_id: Joi.number().required(),
       category_id: Joi.number().required(),
-      subcategory_id: Joi.number().allow(null),
-      brand_id: Joi.number().allow(null),
+      subcategory_id: Joi.number().allow(null, ""),
+      brand_id: Joi.number().allow(null, ""),
       custom_brand: Joi.string().allow(null, ""),
 
       name: Joi.string().required(),
@@ -43,4 +43,12 @@ const createProductSchema = Joi.object({
       ).optional()
 });
 
-export { createProductSchema };
+const updateStockSchema = Joi.object({
+  product_id: Joi.number().required(),
+  variant_id: Joi.number().required(),
+  change_type: Joi.string().valid('ADD', 'REMOVE', 'ORDER', 'RETURN').required(),
+  quantity: Joi.number().integer().min(1).required(),
+  note: Joi.string().allow('', null)
+});
+
+export { createProductSchema, updateStockSchema };
