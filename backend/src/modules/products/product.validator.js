@@ -40,7 +40,7 @@ const createProductSchema = Joi.object({
       is_primary: Joi.boolean().default(false),
       sort_order: Joi.number().default(0)
       })
-      ).required()
+      ).optional()
 });
 
 export { createProductSchema };

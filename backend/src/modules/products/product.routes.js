@@ -3,12 +3,21 @@ const router = express.Router();
 
 import productController from './product.controller.js';
 import { createProductSchema } from './product.validator.js';
+import validate from '../../middlewares/validate.js';
+import upload from '../../middlewares/upload.middleware.js';
+import authenticate from '../../middlewares/auth.middleware.js';
+import jsonParser from '../../middlewares/jsonParser.js';
 
-import validate from '../../middlewares/validate.js'; // if created
+// GET all products with pagination and filters
+router.get("/", authenticate, productController.getAllProducts);
 
-router.post("/",validate(createProductSchema),productController.createProduct
+// POST create product with images
+router.post("/", 
+  authenticate,
+  upload.array("images", 10),
+  jsonParser(['specification', 'variants', 'images']),
+  validate(createProductSchema),
+  productController.createProduct
 );
-
-router.get("/", productController.getAllProducts);
 
 export default router;

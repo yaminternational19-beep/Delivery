@@ -10,6 +10,7 @@ import {
 } from './vendor.validator.js';
 import upload from '../../middlewares/upload.middleware.js';
 import authenticate from '../../middlewares/auth.middleware.js';
+import jsonParser from '../../middlewares/jsonParser.js';
 
 const router = express.Router();
 
@@ -22,13 +23,30 @@ const vendorUpload = upload.fields([
     { name: 'gst_doc', maxCount: 1 }
 ]);
 
+const jsonFields = ['business_categories'];
+
 /* ===============================
    VENDORS
 ================================= */
 
-router.post("/", authenticate, vendorUpload, validate(createVendorSchema), controller.createVendor);
+router.post("/", 
+    authenticate, 
+    vendorUpload, 
+    jsonParser(jsonFields),
+    validate(createVendorSchema), 
+    controller.createVendor
+);
+
 router.get("/", authenticate, controller.getAllVendors);
-router.put("/:id", authenticate, vendorUpload, validate(updateVendorSchema), controller.updateVendor);
+
+router.put("/:id", 
+    authenticate, 
+    vendorUpload, 
+    jsonParser(jsonFields),
+    validate(updateVendorSchema), 
+    controller.updateVendor
+);
+
 router.patch("/:id/status", authenticate, validate(updateStatusSchema), controller.updateStatus);
 router.patch("/:id/kyc", authenticate, validate(updateKycStatusSchema), controller.updateKycStatus);
 router.put("/:id/auto-approve", authenticate, validate(autoApproveSchema), controller.updateAutoApproveStatus);

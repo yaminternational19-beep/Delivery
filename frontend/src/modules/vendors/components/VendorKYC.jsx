@@ -24,7 +24,7 @@ const VendorKYC = ({ showToast }) => {
     const [selectedRequest, setSelectedRequest] = useState(null);
     const [searchQuery, setSearchQuery] = useState('');
     const [statusFilter, setStatusFilter] = useState('All');
-    
+
     // Accordion State
     const [openSections, setOpenSections] = useState({
         business: true,
@@ -87,9 +87,9 @@ const VendorKYC = ({ showToast }) => {
         const reason = prompt('Enter rejection reason:');
         if (reason) {
             try {
-                const res = await updateVendorKycStatusApi(id, { 
-                    kyc_status: 'Rejected', 
-                    kyc_reject_reason: reason 
+                const res = await updateVendorKycStatusApi(id, {
+                    kyc_status: 'Rejected',
+                    kyc_reject_reason: reason
                 });
                 if (res.data.success) {
                     showToast(`KYC for ${selectedRequest.business_name} rejected.`, 'error');
