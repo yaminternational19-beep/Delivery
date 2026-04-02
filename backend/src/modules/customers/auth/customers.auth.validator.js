@@ -7,6 +7,8 @@ const signupSchema = Joi.object({
     email: Joi.string().email().optional(),
     device_id: Joi.string().required(),
     player_id: Joi.string().required(),
+    device_type: Joi.string().optional(),
+    app_version: Joi.string().optional(),
     referral_code: Joi.string().optional()
 });
 
@@ -23,7 +25,7 @@ const loginSchema = Joi.object({
   player_id: Joi.string().required()
 });
 
-const verifyresendOtpSchema = Joi.object({
+const resendOtpSchema = Joi.object({
     token: Joi.string().required()
 });
 
@@ -42,4 +44,4 @@ export const logoutSchema = Joi.object({
 });
 
 
-export { signupSchema, verifyOtpSchema, loginSchema, verifyresendOtpSchema, refreshSchema };
+export { signupSchema, verifyOtpSchema, loginSchema, resendOtpSchema, refreshSchema };

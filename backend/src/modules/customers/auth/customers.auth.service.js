@@ -65,7 +65,7 @@ const generateOtp = () => {
    STORE OTP
 ================================= */
 const storeOtp = async (phone, otp, purpose, token) => {
-  const expiresAt = new Date(Date.now() + 5 * 60 * 1000); // 5 minutes
+  const expiresAt = new Date(Date.now() + (process.env.OTP_EXPIRY_MINUTES || 5) * 60 * 1000); // 5 minutes
   const now = new Date();
 
   await db.query(
@@ -110,7 +110,7 @@ const verifyOtp = async (phone, otp, purpose) => {
   }
 
   // 2. Attempts limit
-  if (otpRow.attempts >= 5) {
+  if (otpRow.attempts >= (process.env.MAX_OTP_ATTEMPTS || 5)) {
     throw new ApiError(429, "Too many wrong OTP attempts");
   }
 
@@ -140,7 +140,7 @@ const verifyOtp = async (phone, otp, purpose) => {
    SIGNUP TOKEN
 ================================= */
 const generateToken = (data) => {
-  return jwt.sign(data, process.env.JWT_SECRET, { expiresIn: "10m" });
+  return jwt.sign(data, process.env.JWT_SECRET, { expiresIn: process.env.OTP_TOKEN_EXPIRY || "10m" });
 };
 
 const verifyToken = (token) => {
@@ -233,7 +233,7 @@ const generateAccessToken = (customer) => {
   return jwt.sign(
     { id: customer.id, role: "CUSTOMER" },
     process.env.JWT_SECRET,
-    { expiresIn: "15m" }
+    { expiresIn: process.env.ACCESS_TOKEN_EXPIRY || "15m" }
   );
 };
 
@@ -241,40 +241,27 @@ const generateRefreshToken = (customer) => {
   return jwt.sign(
     { id: customer.id, role: "CUSTOMER", type: "REFRESH" },
     process.env.JWT_SECRET,
-    { expiresIn: "30d" }
+    { expiresIn: process.env.REFRESH_TOKEN_EXPIRY || "30d" }
   );
 };
 
 /* ===============================
    STORE REFRESH TOKEN
 ================================= */
-const storeRefreshToken = async (customerId, refreshToken, deviceId) => {
+const storeRefreshToken = async (customerId, refreshToken, deviceId, ipAddress, userAgent) => {
   const expiresAt = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000); // 30 Days
 
-  const [rows] = await db.query(
-    `SELECT id FROM customers_sessions
-     WHERE customer_id = ? AND device_id = ?
-     LIMIT 1`,
-    [customerId, deviceId]
+  await db.query(
+    `INSERT INTO customers_sessions
+     (customer_id, refresh_token, device_id, expires_at, ip_address, user_agent)
+     VALUES (?, ?, ?, ?, ?, ?)
+     ON DUPLICATE KEY UPDATE
+       refresh_token = VALUES(refresh_token),
+       expires_at = VALUES(expires_at),
+       ip_address = VALUES(ip_address),
+       user_agent = VALUES(user_agent)`,
+    [customerId, refreshToken, deviceId, expiresAt, ipAddress, userAgent]
   );
-
-  if (rows.length) {
-    // Update existing session
-    await db.query(
-      `UPDATE customers_sessions
-       SET refresh_token = ?, expires_at = ?
-       WHERE id = ?`,
-      [refreshToken, expiresAt, rows[0].id]
-    );
-  } else {
-    // Insert new session
-    await db.query(
-      `INSERT INTO customers_sessions
-       (customer_id, refresh_token, device_id, expires_at)
-       VALUES (?, ?, ?, ?)`,
-      [customerId, refreshToken, deviceId, expiresAt]
-    );
-  }
 };
 
 const refreshSession = async (oldRefreshToken) => {
@@ -386,7 +373,7 @@ const resendOtp = async (phone, purpose) => {
   }
 
   // 2. Max 5 OTP per hour
-  if (otpRow.send_count >= 5 && (now - createdAt) < 3600000) {
+  if (otpRow.send_count >= (process.env.MAX_OTP_RESENDS || 5) && (now - createdAt) < 3600000) {
     throw new ApiError(429, "OTP request limit reached. Try again after 1 hour.");
   }
 
@@ -435,12 +422,26 @@ const logoutCustomer = async (refreshToken, logoutAll = false) => {
        WHERE customer_id = ?`,
       [session.customer_id]
     );
+    // Deactivate all devices for this customer
+    await db.query(
+      `UPDATE customers_devices
+       SET is_active = FALSE
+       WHERE customer_id = ?`,
+      [session.customer_id]
+    );
   } else {
     // Delete only current session
     await db.query(
       `DELETE FROM customers_sessions
        WHERE id = ?`,
       [session.id]
+    );
+    // Deactivate current device
+    await db.query(
+      `UPDATE customers_devices
+       SET is_active = FALSE
+       WHERE customer_id = ? AND device_id = ?`,
+      [session.customer_id, session.device_id]
     );
   }
 

@@ -53,6 +53,8 @@ import authRoutes from '../../modules/auth/auth.routes.js';
 
 router.use("/auth", authRoutes);
 
+
+
 import subadmins from '../../modules/subadmins/subadmin.routes.js';
 
 router.use("/subadmin", subadmins);
@@ -103,15 +105,9 @@ router.use("/admin-products", adminProductsRoutes);
 
 
 
+import customerAuthRoutes from '../../modules/customers/auth/customers.auth.routes.js';
 
-
-/* ===============================
-    CUSTOMERS AUTH ROUTES
-================================= */
-
-import customersAuthRoutes from '../../modules/customers/auth/customers.auth.routes.js';
-
-router.use("/customers", customersAuthRoutes);
+router.use("/customers", customerAuthRoutes);
 
 
 export default router;

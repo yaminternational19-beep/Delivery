@@ -15,6 +15,8 @@ export const signup = asyncHandler(async (req, res) => {
     email,
     device_id,
     player_id,
+    device_type,
+    app_version,
     referral_code
   } = req.body;
 
@@ -48,6 +50,8 @@ export const signup = asyncHandler(async (req, res) => {
     email,
     device_id,
     player_id,
+    device_type,
+    app_version,
     referrer_id,
     purpose: "signup"
   });
@@ -129,6 +133,14 @@ export const verifyOtp = asyncHandler(async (req, res) => {
   // Signup → create customer
   if (!customer && decoded.purpose === "signup") {
     customer = await customersAuthService.createCustomer(decoded);
+    // Store device on signup
+    await customersAuthService.storeCustomerDevice({
+      customer_id: customer.id,
+      device_id: decoded.device_id,
+      player_id: decoded.player_id,
+      device_type: decoded.device_type,
+      app_version: decoded.app_version
+    });
   }
 
   // Login → store device
@@ -143,7 +155,7 @@ export const verifyOtp = asyncHandler(async (req, res) => {
   const accessToken = customersAuthService.generateAccessToken(customer);
   const refreshToken = customersAuthService.generateRefreshToken(customer);
 
-  await customersAuthService.storeRefreshToken(customer.id, refreshToken, decoded.device_id);
+  await customersAuthService.storeRefreshToken(customer.id, refreshToken, decoded.device_id, req.ip, req.get('User-Agent'));
 
   return ApiResponse.success(res, "Success", {
     accessToken,
