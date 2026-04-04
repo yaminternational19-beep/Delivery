@@ -1,0 +1,277 @@
+import db from "../../config/db.js";
+import ApiError from "../../utils/ApiError.js";
+import { getPagination, getPaginationMeta } from "../../utils/pagination.js";
+import formatCustomerDates from "../../utils/formatCustomerDates.js";
+
+/* ===============================
+   PROFILE COMPLETION
+================================ */
+
+const calculateProfileCompletion = (customer, address) => {
+  let total = 6;
+  let completed = 0;
+
+  if (customer.name) completed++;
+  if (customer.mobile) completed++;
+  if (customer.email) completed++;
+  if (customer.gender) completed++;
+  if (customer.profile_image) completed++;
+  if (address) completed++;
+
+  return Math.round((completed / total) * 100);
+};
+
+/* ===============================
+   GET ALL CUSTOMERS
+================================ */
+
+export const getAllCustomers = async (queryParams) => {
+
+  const { page, limit, skip } = getPagination(queryParams);
+
+  let where = [];
+  let values = [];
+
+  /* ===============================
+     FILTERS
+  =============================== */
+
+  if (queryParams.status) {
+    where.push("c.status = ?");
+    values.push(queryParams.status);
+  }
+
+  if (queryParams.search) {
+    where.push("(c.name LIKE ? OR c.email LIKE ? OR c.full_phone LIKE ?)");
+    values.push(`%${queryParams.search}%`);
+    values.push(`%${queryParams.search}%`);
+    values.push(`%${queryParams.search}%`);
+  }
+
+  if (queryParams.country) {
+    where.push("a.country = ?");
+    values.push(queryParams.country);
+  }
+
+  if (queryParams.state) {
+    where.push("a.state = ?");
+    values.push(queryParams.state);
+  }
+
+  const whereClause = where.length
+    ? `WHERE c.is_deleted = FALSE AND ${where.join(" AND ")}`
+    : `WHERE c.is_deleted = FALSE`;
+
+  /* ===============================
+     TOTAL COUNT
+  =============================== */
+
+  const [countResult] = await db.query(
+    `SELECT COUNT(*) as total
+     FROM customers c
+     LEFT JOIN customers_addresses a ON a.id = c.default_address_id
+     ${whereClause}`,
+    values
+  );
+
+  const totalRecords = countResult[0].total;
+
+  /* ===============================
+     FETCH DATA
+  =============================== */
+
+  const [rows] = await db.query(
+    `SELECT 
+        c.id,
+        c.country_code,
+        c.mobile,
+        c.full_phone,
+        c.name,
+        c.email,
+        c.gender,
+        c.profile_image,
+        c.status,
+        c.created_at,
+        r.name as referred_by,
+
+        a.city,
+        a.state,
+        a.country
+
+     FROM customers c
+     LEFT JOIN customers r ON r.id = c.referrer_id
+     LEFT JOIN customers_addresses a ON a.id = c.default_address_id
+
+     ${whereClause}
+     ORDER BY c.created_at DESC
+     LIMIT ? OFFSET ?`,
+    [...values, limit, skip]
+  );
+
+  /* ===============================
+     FORMAT RESPONSE
+  =============================== */
+
+  const records = formatCustomerDates(
+    rows.map(c => {
+
+      let address = null;
+
+      if (c.city || c.state || c.country) {
+        address = `${c.city || ""}, ${c.state || ""}, ${c.country || ""}`;
+      }
+
+      const profile_completion = calculateProfileCompletion(c, address);
+
+      return {
+        id: c.id,
+        customer_code: `CUST-${c.id}`,
+        name: c.name,
+        email: c.email,
+        phone: c.full_phone,
+        profile_image: c.profile_image,
+        referred_by: c.referred_by || null,
+        location: address,
+        status: c.status ? c.status.toLowerCase() : "active",
+        orders: 0,
+        profile_completion,
+        joined: c.created_at
+      };
+    })
+  );
+
+  const pagination = getPaginationMeta(page, limit, totalRecords);
+
+  /* ===============================
+     GLOBAL STATS
+  =============================== */
+
+  const [customerStats] = await db.query(`
+    SELECT 
+      COUNT(*) as total,
+      SUM(CASE WHEN status = 'active' THEN 1 ELSE 0 END) as active,
+      SUM(CASE WHEN status = 'suspended' THEN 1 ELSE 0 END) as suspended,
+      SUM(CASE WHEN status = 'terminated' THEN 1 ELSE 0 END) as terminatedCount
+    FROM customers
+    WHERE is_deleted = FALSE
+  `);
+
+  const statsData = {
+    total: customerStats[0].total,
+    active: customerStats[0].active,
+    suspended: customerStats[0].suspended,
+    terminated: customerStats[0].terminatedCount
+  };
+
+  return {
+    stats: statsData,
+    records,
+    pagination
+  };
+};
+
+
+/* ===============================
+   GET CUSTOMER BY ID
+================================ */
+
+export const getCustomerById = async (id) => {
+
+  const [rows] = await db.query(
+    `SELECT 
+        c.id,
+        c.country_code,
+        c.mobile,
+        c.full_phone,
+        c.name,
+        c.email,
+        c.gender,
+        c.profile_image,
+        c.status,
+        c.created_at,
+        r.name as referred_by,
+
+        a.address_name,
+        a.contact_person_name,
+        a.contact_phone,
+        a.address_line_1,
+        a.address_line_2,
+        a.landmark,
+        a.city,
+        a.state,
+        a.country,
+        a.pincode
+
+     FROM customers c
+     LEFT JOIN customers r ON r.id = c.referrer_id
+     LEFT JOIN customers_addresses a ON a.id = c.default_address_id
+     WHERE c.id = ? AND c.is_deleted = FALSE`,
+    [id]
+  );
+
+  if (!rows.length) {
+    throw new ApiError(404, "Customer not found");
+  }
+
+  const customer = rows[0];
+
+  let address = null;
+  if (customer.city || customer.state || customer.country) {
+    address = `${customer.address_line_1 || ""}, ${customer.city || ""}, ${customer.state || ""}, ${customer.country || ""}`;
+  }
+
+  const profile_completion = calculateProfileCompletion(customer, address);
+
+  return {
+    ...customer,
+    customer_code: `CUST-${customer.id}`,
+    location: address,
+    profile_completion,
+    joined: customer.created_at
+  };
+};
+
+/* ===============================
+   UPDATE CUSTOMER STATUS
+================================ */
+
+export const updateStatus = async (id, status) => {
+
+  const [result] = await db.query(
+    "UPDATE customers SET status = ?, updated_at = NOW() WHERE id = ? AND is_deleted = FALSE",
+    [status, id]
+  );
+
+  if (result.affectedRows === 0) {
+    throw new ApiError(404, "Customer not found");
+  }
+
+  return true;
+
+};
+
+/* ===============================
+   DELETE CUSTOMER
+================================ */
+
+export const deleteCustomer = async (id) => {
+
+  const [result] = await db.query(
+    "UPDATE customers SET is_deleted = TRUE, updated_at = NOW() WHERE id = ?",
+    [id]
+  );
+
+  if (result.affectedRows === 0) {
+    throw new ApiError(404, "Customer not found");
+  }
+
+  return true;
+
+};
+
+export default {
+  getAllCustomers,
+  getCustomerById,
+  updateStatus,
+  deleteCustomer
+};

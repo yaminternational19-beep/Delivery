@@ -23,8 +23,6 @@ const getCustomerByPhone = async (country_code, mobile) => {
   return formatCustomerDates(rows[0]);
 };
 
-
-
 const getCustomerById = async (id) => {
   const [rows] = await db.query("SELECT * FROM customers WHERE id = ? AND is_deleted = FALSE LIMIT 1", [id]);
   return formatCustomerDates(rows[0]);
@@ -42,18 +40,6 @@ const validateReferralCode = async (referral_code) => {
   return rows[0].id;
 };
 
-// const requestOtp = async ({ country_code, mobile, name, email, device_id, player_id, device_type, app_version, referral_code }) => {
-//   const full_phone = `${country_code}${mobile}`;
-//   const existing = await getCustomerByPhone(country_code, mobile);
-//   if (existing && existing.status !== "active") throw new ApiError(403, `Account is ${existing.status}.`);
-//   const purpose = existing ? "login" : "signup";
-//   let referrer_id = null;
-//   if (purpose === "signup") referrer_id = await validateReferralCode(referral_code);
-//   const otp = generateOtp();
-//   const token = generateToken({ country_code, mobile, full_phone, name: name || null, email: email || null, device_id, player_id, device_type: device_type || null, app_version: app_version || null, referrer_id, purpose });
-//   await storeOtp(full_phone, otp, purpose, token);
-//   return { token, otp, purpose };
-// };
 
 const requestOtp = async ({
   country_code,
@@ -255,3 +241,7 @@ const generateUniqueReferralCode = async () => {
 };
 
 export default { requestOtp, verifyOtp, resendOtp, completeOtpAuth, getCustomerByPhone, getCustomerByEmail, getCustomerById, createCustomer, linkPhoneToCustomer, updateLoginDetails, storeCustomerDevice, generateToken, verifyToken, generateAccessToken, generateRefreshToken, storeRefreshToken, refreshSession, logoutCustomer, findOrCreateSocialCustomer, generateOtp, validateReferralCode, generateUniqueReferralCode };
+
+
+
+
