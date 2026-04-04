@@ -91,6 +91,7 @@ export const getAllCustomers = async (queryParams) => {
         c.gender,
         c.profile_image,
         c.status,
+        c.last_login_at,
         c.created_at,
         r.name as referred_by,
 
@@ -114,14 +115,12 @@ export const getAllCustomers = async (queryParams) => {
 
   const records = formatCustomerDates(
     rows.map(c => {
-
-      let address = null;
-
+      let locationStr = null;
       if (c.city || c.state || c.country) {
-        address = `${c.city || ""}, ${c.state || ""}, ${c.country || ""}`;
+        locationStr = [c.city, c.state, c.country].filter(Boolean).join(", ");
       }
 
-      const profile_completion = calculateProfileCompletion(c, address);
+      const profile_completion = calculateProfileCompletion(c, locationStr);
 
       return {
         id: c.id,
@@ -131,11 +130,17 @@ export const getAllCustomers = async (queryParams) => {
         phone: c.full_phone,
         profile_image: c.profile_image,
         referred_by: c.referred_by || null,
-        location: address,
+        location: locationStr,
         status: c.status ? c.status.toLowerCase() : "active",
         orders: 0,
         profile_completion,
-        joined: c.created_at
+        joined: c.created_at,
+        last_login_at: c.last_login_at,
+        address: locationStr ? {
+          city: c.city,
+          state: c.state,
+          country: c.country
+        } : null  
       };
     })
   );
@@ -169,7 +174,6 @@ export const getAllCustomers = async (queryParams) => {
     pagination
   };
 };
-
 
 /* ===============================
    GET CUSTOMER BY ID
